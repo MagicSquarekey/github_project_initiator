@@ -6,7 +6,7 @@
  */
 
 import net from 'node:net';
-import { pidsByImageName } from './netstat.js';
+import { pidsByImageName } from './platform.js';
 
 /**
  * TCP 连接测试：能连上说明端口在监听。

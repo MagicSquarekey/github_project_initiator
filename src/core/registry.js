@@ -16,10 +16,16 @@ const REGISTRY_PATH = path.join(ROOT, 'data', 'registry.json');
 
 const VALID_KINDS = ['node-service', 'python-service', 'go-binary', 'cli-tool', 'desktop-app', 'observe-only'];
 const VALID_STOP_STRATEGIES = ['port', 'procname', 'command', 'none'];
-const VALID_UPDATE_STRATEGIES = ['git', 'git-fork', 'none'];
+const VALID_UPDATE_STRATEGIES = ['git', 'git-fork', 'git-clone', 'none'];
 
 /** 管理器自身端口，注册表校验时用来检测被管项目是否冲突 */
 export const MANAGER_PORT = 8780;
+
+/** 版本号：与 package.json 保持同步即可，不引依赖 */
+export const VERSION = '1.1.0';
+
+/** 当前平台是否受支持（停止能力依赖 netstat/taskkill，仅 Windows 完整可用） */
+export const PLATFORM_SUPPORTED = process.platform === 'win32';
 
 /**
  * 校验单个项目条目，返回错误信息数组（空数组 = 合法）。
@@ -128,8 +134,18 @@ function validateProject(p, index) {
   const update = p.update;
   if (!update || typeof update !== 'object') {
     errors.push(`${where}.update: 必填对象`);
-  } else if (!VALID_UPDATE_STRATEGIES.includes(update.strategy)) {
-    errors.push(`${where}.update.strategy: 必须是 ${VALID_UPDATE_STRATEGIES.join(' / ')}`);
+  } else {
+    if (!VALID_UPDATE_STRATEGIES.includes(update.strategy)) {
+      errors.push(`${where}.update.strategy: 必须是 ${VALID_UPDATE_STRATEGIES.join(' / ')}`);
+    }
+    // git-clone 需要知道上游地址，否则没法拉
+    if (update.strategy === 'git-clone') {
+      if (typeof update.repoUrl !== 'string' || !update.repoUrl) {
+        errors.push(`${where}.update.repoUrl: strategy=git-clone 时必填（上游仓库地址）`);
+      } else if (!/^(https?:\/\/|git@)/i.test(update.repoUrl)) {
+        errors.push(`${where}.update.repoUrl: 必须是 http(s):// 或 git@ 开头的仓库地址`);
+      }
+    }
   }
 
   if (typeof p.startupTimeoutMs !== 'number' || p.startupTimeoutMs < 0) {

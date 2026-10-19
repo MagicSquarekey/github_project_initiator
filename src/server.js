@@ -9,7 +9,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { MANAGER_PORT } from './core/registry.js';
+import { MANAGER_PORT, VERSION } from './core/registry.js';
 import * as projectsApi from './api/projects.js';
 import { scanForProjects } from './api/scan.js';
 import { logger } from './util/logger.js';
@@ -70,7 +70,13 @@ async function handleApi(req, res, pathname, url) {
 
   // GET /api/health —— 管理器自身健康
   if (method === 'GET' && pathname === '/api/health') {
-    sendJson(res, 200, { ok: true, uptimeSec: Math.floor(process.uptime()) });
+    sendJson(res, 200, {
+      ok: true,
+      version: VERSION,
+      platform: process.platform,
+      arch: process.arch,
+      uptimeSec: Math.floor(process.uptime()),
+    });
     return;
   }
 

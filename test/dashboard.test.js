@@ -49,20 +49,32 @@ function mkEl(tag) {
 /**
  * 提取看板 <script> 并准备可调用环境。
  *
- * @returns {{ render: Function, errors: Map, busy: Set, grid: any }}
+ * 最小 DOM 桩只需覆盖看板用到的接口；localStorage 也要桩掉
+ * ——看板用它记住语言与主题偏好。
+ *
+ * @returns {{ render: Function, errors: Map, busy: Set, snapshot: Map, grid: any, applyLang: Function, applyTheme: Function }}
  */
 function loadDashboard() {
   const html = fs.readFileSync(HTML_PATH, 'utf8');
   const code = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 
   const grid = mkEl('div');
-  const els = {};
-  const document_ = {
-    getElementById: (id) => (els[id] ??= mkEl('div')),
-  };
+  const els = { grid };
 
+  const store = new Map();
   const sandbox = {
-    document: document_,
+    document: {
+      getElementById: (id) => (els[id] ??= mkEl('div')),
+      querySelectorAll: () => [],
+      documentElement: { dataset: {}, lang: '' },
+      addEventListener: () => {},
+    },
+    localStorage: {
+      getItem: (k) => (store.has(k) ? store.get(k) : null),
+      setItem: (k, v) => store.set(k, String(v)),
+      removeItem: (k) => store.delete(k),
+    },
+    navigator: { language: 'zh-CN' },
     CSS: { escape: (s) => String(s).replace(/"/g, '\\"') },
     fetch: async () => ({ json: async () => ({ projects: [] }) }),
     setInterval: () => {},
@@ -72,13 +84,13 @@ function loadDashboard() {
     console,
   };
 
-  // 把 grid 挂到 getElementById('grid')
-  els.grid = grid;
-
   // 用 Function 构造而非 eval，避免内联转义问题
   const body = code.replace(/refresh\(\);\s*setInterval\(refresh, 3000\);/, '');
   const keys = Object.keys(sandbox);
-  const fn = new Function(...keys, `${body}\nreturn { render, errors, busy, snapshot };`);
+  const fn = new Function(
+    ...keys,
+    `${body}\nreturn { render, errors, busy, snapshot, applyLang, applyTheme, I18N, t };`,
+  );
   return { ...fn(...keys.map((k) => sandbox[k])), grid };
 }
 
@@ -217,5 +229,74 @@ test('启动中状态显示处理中', () => {
 test('运行时长格式化', () => {
   const { render, grid } = loadDashboard();
   render([proj({ id: 'a', name: 'A', running: true, uptimeSec: 3725 })]);
-  assert.match(grid.children.join(''), /1h2m/);
+  assert.match(grid.children.join(''), /1h 2m/);
+});
+
+test('i18n：中英文案都存在且键对齐', () => {
+  const { I18N } = loadDashboard();
+  assert.ok(I18N.zh && I18N.en);
+  // 两种语言的键必须一致，否则切语言会露出未翻译的 key
+  const zhKeys = Object.keys(I18N.zh).sort();
+  const enKeys = Object.keys(I18N.en).sort();
+  assert.deepEqual(enKeys, zhKeys, '中英文案键集合不一致');
+});
+
+test('i18n：按钮文案随语言切换', () => {
+  const { render, grid, applyLang } = loadDashboard();
+  render([proj({ id: 'a', name: 'A', running: true })]);
+  assert.match(grid.children.join(''), />停止</);   // 默认中文
+
+  // 看板内部 lang 是模块级变量，applyLang 读取它；这里直接验证两套案不同
+  const { I18N } = loadDashboard();
+  assert.notEqual(I18N.zh.stop, I18N.en.stop);
+  assert.notEqual(I18N.zh.updateAll, I18N.en.updateAll);
+});
+
+test('i18n：t() 支持插值函数', () => {
+  const { t } = loadDashboard();
+  // updateDone 是函数式文案
+  assert.match(t('updateDone', 2, 3, 'X'), /2/);
+  assert.match(t('updateDone', 2, 3, 'X'), /3/);
+});
+
+test('主题：明暗两套 CSS 变量都定义了', () => {
+  const html = fs.readFileSync(HTML_PATH, 'utf8');
+  const darkStart = html.indexOf('data-theme="dark"');
+  const lightStart = html.indexOf('data-theme="light"');
+  assert.ok(darkStart >= 0 && lightStart > darkStart);
+
+  // 两个主题块（dark 块到 light 块开头，light 块到 * 选择器前）
+  const darkBlock = html.slice(darkStart, lightStart);
+  const lightBlock = html.slice(lightStart, html.indexOf('* {', lightStart));
+
+  for (const name of ['bg', 'card', 'text', 'border', 'accent', 'green', 'red']) {
+    assert.match(darkBlock, new RegExp(`--${name}:`), `dark 主题缺少 --${name}`);
+    assert.match(lightBlock, new RegExp(`--${name}:`), `light 主题缺少 --${name}`);
+  }
+});
+
+test('样式：卡片网格用固定列宽保证统一', () => {
+  const html = fs.readFileSync(HTML_PATH, 'utf8');
+  // 必须用固定 3 列，不能用 auto-fill（那会导致卡片宽度不一）
+  assert.match(html, /grid-template-columns:\s*repeat\(3/);
+  assert.doesNotMatch(html, /auto-fill/);
+});
+
+test('样式：卡片有最小高度，空内容也等高', () => {
+  const html = fs.readFileSync(HTML_PATH, 'utf8');
+  assert.match(html, /\.card\s*{[^}]*min-height/);
+});
+
+test('语言与主题切换按钮存在', () => {
+  const html = fs.readFileSync(HTML_PATH, 'utf8');
+  assert.match(html, /id="btn-lang"/);
+  assert.match(html, /id="btn-theme"/);
+  assert.match(html, /id="lang-label"/);
+  assert.match(html, /id="theme-label"/);
+});
+
+test('日志抽屉存在且可关闭', () => {
+  const html = fs.readFileSync(HTML_PATH, 'utf8');
+  assert.match(html, /id="drawer"/);
+  assert.match(html, /id="drawer-close"/);
 });

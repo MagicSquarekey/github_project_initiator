@@ -18,10 +18,10 @@
  *    日志正则比端口探测更准：端口可能先被别的进程占着。
  */
 
-import { spawnLineReader, exec } from '../util/exec.js';
+import { spawnLineReader } from '../util/exec.js';
 import { createProjectLogger } from '../util/logger.js';
 import { isPortOpen, isPidAlive } from './probe.js';
-import { pidsOnPorts, pidsByImageName } from './netstat.js';
+import { pidsOnPorts, pidsByImageName, killPids } from './platform.js';
 
 /** 每个项目的运行期内存状态（不落盘，重启管理器即清空） */
 const runtime = new Map();
@@ -311,19 +311,6 @@ export async function restartProject(project) {
   }
 
   return startProject(project);
-}
-
-/**
- * taskkill 一批 PID。
- *
- * @param {number[]} pids
- * @param {boolean} force 是否加 /F
- */
-async function killPids(pids, force) {
-  const args = force ? ['/F'] : [];
-  for (const pid of pids) {
-    await exec('taskkill', [...args, '/PID', String(pid)], { timeoutMs: 10000 });
-  }
 }
 
 /**

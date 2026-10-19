@@ -49,6 +49,9 @@ async function makeBare() {
 /** 统一的 git 调用参数：隔离用户全局配置，默认分支固定为 main */
 const GIT_ENV = ['-c', 'user.email=t@t', '-c', 'user.name=t', '-c', 'commit.gpgsign=false'];
 
+/** 归一化行尾：Windows 的 git autocrlf 会把 \n 写成 \r\n，比较前统一 */
+const norm = (s) => String(s).replace(/\r\n/g, '\n');
+
 /**
  * 建一个工作区仓库并推到 bare，建立 origin 与 upstream 追踪。
  *
@@ -182,16 +185,72 @@ test('本地领先时 pull --ff-only 明确失败（铁律 1）', async () => {
   assert.equal(r.ok, false, '分叉时必须失败，不能悄悄 merge');
 });
 
-test('updateProject 拒绝脏工作区（铁律 2）', async () => {
-  const { dir } = await makeRepoWithRemote();
-  await fs.promises.writeFile(path.join(dir, 'dirty.txt'), 'x\n');
+test('脏工作区自动 stash 后更新成功，改动原样恢复（铁律 2 已升级）', async () => {
+  const { dir, bare, git } = await makeRepoWithRemote();
+
+  // 远端推进一个提交
+  await advanceRemote(bare, 'remote.txt', 'r\n', 'remote-c2');
+
+  // 本地制造未提交改动（跟踪文件改动 + 未跟踪文件各一个）
+  await fs.promises.writeFile(path.join(dir, 'f.txt'), 'local-edit\n');
+  await fs.promises.writeFile(path.join(dir, 'local-only.txt'), 'keep me\n');
 
   const r = await updateProject({
     id: 't', path: dir,
     update: { strategy: 'git', remote: 'origin', branch: 'main' },
   });
+
+  assert.equal(r.ok, true, `应更新成功：${r.message}`);
+  assert.equal(r.stashed, true, '应标记为自动暂存过');
+  assert.equal(r.stashRestored, true, '应恢复暂存的改动');
+
+  // 远程提交已拉取
+  assert.equal(fs.existsSync(path.join(dir, 'remote.txt')), true, '远程新文件应存在');
+  // 本地改动完整恢复（Windows 下 git 可能把 \n 转成 \r\n，归一化后比较）
+  assert.equal(norm(fs.readFileSync(path.join(dir, 'f.txt'), 'utf8')), 'local-edit\n', '本地改动应恢复');
+  assert.equal(fs.existsSync(path.join(dir, 'local-only.txt')), true, '未跟踪文件应恢复');
+  // stash 已清空（没留下残留）
+  const stashList = await exec('git', ['stash', 'list'], { cwd: dir, timeoutMs: 15000 });
+  assert.equal(stashList.stdout.trim(), '', 'stash 应已清空');
+});
+
+test('更新失败时 stash 自动回滚，工作区回到原状', async () => {
+  const { dir, bare, git } = await makeRepoWithRemote();
+
+  // 双方分叉 → ff-only 必然失败
+  await advanceRemote(bare, 'remote.txt', 'r\n', 'remote-c2');
+  await fs.promises.writeFile(path.join(dir, 'f.txt'), 'local-edit\n');
+  await git(['add', '.']);
+  await git(['commit', '--quiet', '-m', 'local-c2']);
+
+  const r = await updateProject({
+    id: 't', path: dir,
+    update: { strategy: 'git', remote: 'origin', branch: 'main' },
+  });
+
+  assert.equal(r.ok, false, '分叉时必须失败');
+  // 关键：工作区必须回到更新前，stash 不能残留
+  assert.equal(norm(fs.readFileSync(path.join(dir, 'f.txt'), 'utf8')), 'local-edit\n', '本地改动必须原样保留');
+  const stashList = await exec('git', ['stash', 'list'], { cwd: dir, timeoutMs: 15000 });
+  assert.equal(stashList.stdout.trim(), '', 'stash 必须已回滚，不能残留');
+});
+
+test('remote 检查失败时不会留下 stash（数据安全）', async () => {
+  const { dir } = await makeRepoWithRemote();
+  // 配一个不存在的 remote，让检查在 stash 之前就失败
+  await fs.promises.writeFile(path.join(dir, 'f.txt'), 'local-edit\n');
+
+  const r = await updateProject({
+    id: 't', path: dir,
+    update: { strategy: 'git', remote: 'nosuch', branch: 'main' },
+  });
+
   assert.equal(r.ok, false);
-  assert.match(r.message, /未提交改动/);
+  assert.match(r.message, /nosuch/);
+  // 改动必须原地还在，且没有 stash 残留
+  assert.equal(fs.readFileSync(path.join(dir, 'f.txt'), 'utf8'), 'local-edit\n');
+  const stashList = await exec('git', ['stash', 'list'], { cwd: dir, timeoutMs: 15000 });
+  assert.equal(stashList.stdout.trim(), '', '检查失败绝不能留下 stash');
 });
 
 test('updateProject 拒绝非 git 仓库', async () => {
@@ -275,4 +334,72 @@ test('mergeUpstream 冲突时自动 abort 且不留下半合并状态（铁律 3
   // 关键：不能留下 MERGE_HEAD，工作区必须还能正常操作
   assert.equal(fs.existsSync(path.join(dir, '.git', 'MERGE_HEAD')), false, '不应残留 MERGE_HEAD');
   assert.equal(await currentBranch(dir), 'main', '分支应保持不变');
+});
+
+/* ============================================================
+   git-clone：zip 解压得到的非仓库目录一键更新（需求 2）
+   ============================================================ */
+
+test('git-clone：非仓库目录首次更新即对齐上游，本地未跟踪文件保留', async () => {
+  const bare = await makeBare();
+  await advanceRemote(bare, 'app.js', 'v2\n', 'upstream-c2');   // 上游已有一次提交
+
+  // 模拟 zip 解压：有旧版文件 + 本地配置/凭据，没有 .git
+  const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'gpi-zip-'));
+  await fs.promises.writeFile(path.join(dir, 'app.js'), 'v1\n');
+  await fs.promises.writeFile(path.join(dir, 'config.json'), 'my local config\n');
+  await fs.promises.mkdir(path.join(dir, 'data'), { recursive: true });
+  await fs.promises.writeFile(path.join(dir, 'data', 'creds.txt'), 'secret\n');
+
+  const r = await updateProject({
+    id: 'zip', path: dir,
+    update: { strategy: 'git-clone', remote: 'origin', branch: 'main', repoUrl: bare },
+  });
+
+  assert.equal(r.ok, true, `首次更新应成功：${r.message}`);
+  assert.match(r.message, /汇合/);
+  // 上游内容到位
+  assert.equal(norm(fs.readFileSync(path.join(dir, 'app.js'), 'utf8')), 'v2\n', '应更新到上游版本');
+  // 本地未跟踪文件原样保留
+  assert.equal(norm(fs.readFileSync(path.join(dir, 'config.json'), 'utf8')), 'my local config\n');
+  assert.equal(fs.existsSync(path.join(dir, 'data', 'creds.txt')), true, '本地凭据必须保留');
+
+  // 之后就是普通 git 仓库，走 ff-only
+  const r2 = await updateProject({
+    id: 'zip', path: dir,
+    update: { strategy: 'git', remote: 'origin', branch: 'main' },
+  });
+  assert.equal(r2.ok, true, `二次更新应成功：${r2.message}`);
+  assert.match(r2.message, /已是最新|已更新/);
+});
+
+test('git-clone：缺少 repoUrl 时明确报错', async () => {
+  const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'gpi-zip-'));
+  const r = await updateProject({
+    id: 'zip', path: dir,
+    update: { strategy: 'git-clone', remote: 'origin', branch: 'main' },
+  });
+  assert.equal(r.ok, false);
+  assert.match(r.message, /repoUrl/);
+});
+
+test('git-clone：第二次调用（已是仓库）也能正常工作', async () => {
+  const bare = await makeBare();
+  await advanceRemote(bare, 'app.js', 'v2\n', 'c2');
+
+  const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'gpi-zip-'));
+  await fs.promises.writeFile(path.join(dir, 'app.js'), 'v2\n');
+
+  // 连续两次 git-clone：第一次建库汇合，第二次已是仓库
+  const r1 = await updateProject({
+    id: 'zip', path: dir,
+    update: { strategy: 'git-clone', remote: 'origin', branch: 'main', repoUrl: bare },
+  });
+  assert.equal(r1.ok, true, r1.message);
+
+  const r2 = await updateProject({
+    id: 'zip', path: dir,
+    update: { strategy: 'git-clone', remote: 'origin', branch: 'main', repoUrl: bare },
+  });
+  assert.equal(r2.ok, true, r2.message);
 });
