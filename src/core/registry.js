@@ -24,6 +24,12 @@ const VALID_UPDATE_STRATEGIES = ['git', 'git-fork', 'none'];
 /** 管理器自身端口，注册表校验时用来检测被管项目是否冲突 */
 export const MANAGER_PORT = 8780;
 
+/** 管理器自身在看板里的条目 id。日志读取会自然命中 data/logs/manager.log */
+export const SELF_PROJECT_ID = 'manager';
+
+/** 管理器自身在看板里的显示名 */
+export const SELF_PROJECT_NAME = 'github_project_initiator';
+
 /** 版本号：与 package.json 保持同步即可，不引依赖 */
 export const VERSION = '1.1.0';
 
@@ -83,6 +89,38 @@ function withExpandedPaths(project) {
 }
 
 /**
+ * 管理器自身的看板条目。
+ *
+ * 它不是用户配置的一部分：loadRegistry() 每次动态注入，saveRegistry() 写盘时剥离。
+ * 不写进 registry.json 的理由：
+ *   - 路径就是代码根目录，写死绝对路径会破坏开源配置的可移植性；
+ *   - 不允许用户误删或改成可启停——停止自己等于关掉看板；
+ *   - 端口 8780 本来就禁止被其他条目占用，自身是唯一的合法使用者。
+ *
+ * kind=observe-only：状态由进程自身提供，不做 TCP 自连、不启动、不停止。
+ * id=manager 与日志文件名对齐，日志按钮直接读 data/logs/manager.log。
+ *
+ * @returns {any}
+ */
+export function buildSelfProject() {
+  return {
+    id: SELF_PROJECT_ID,
+    name: SELF_PROJECT_NAME,
+    path: ROOT,
+    enabled: true,
+    self: true,
+    kind: 'observe-only',
+    start: { command: null, args: [] },
+    stop: { strategy: 'none' },
+    url: `http://127.0.0.1:${MANAGER_PORT}`,
+    port: MANAGER_PORT,
+    startupTimeoutMs: 0,
+    update: { strategy: 'none' },
+    notes: '管理器自身：状态由当前进程提供，不能在看板里启停或更新。升级请手动 git pull 后重启进程。',
+  };
+}
+
+/**
  * 校验单个项目条目，返回错误信息数组（空数组 = 合法）。
  *
  * @param {any} p
@@ -97,6 +135,8 @@ function validateProject(p, index) {
     errors.push(`${where}: 必须是对象`);
     return errors;
   }
+  // 合成条目是唯一允许声明管理器端口的项目（它本来就是管理器）
+  const isSelf = p.self === true;
   if (typeof p.id !== 'string' || !/^[a-z0-9][a-z0-9-]*$/.test(p.id)) {
     errors.push(`${where}.id: 必填，且只能含小写字母/数字/连字符`);
   }
@@ -167,7 +207,7 @@ function validateProject(p, index) {
   if (p.port !== undefined && p.port !== null) {
     if (!Number.isInteger(p.port) || p.port < 1 || p.port > 65535) {
       errors.push(`${where}.port: 必须是 1-65535 的整数`);
-    } else if (p.port === MANAGER_PORT) {
+    } else if (p.port === MANAGER_PORT && !isSelf) {
       errors.push(`${where}.port: ${MANAGER_PORT} 是管理器自身端口，不能复用`);
     }
   }
@@ -178,7 +218,7 @@ function validateProject(p, index) {
       for (const pt of p.ports) {
         if (!Number.isInteger(pt) || pt < 1 || pt > 65535) {
           errors.push(`${where}.ports: "${pt}" 不是有效端口号`);
-        } else if (pt === MANAGER_PORT) {
+        } else if (pt === MANAGER_PORT && !isSelf) {
           errors.push(`${where}.ports: ${MANAGER_PORT} 是管理器自身端口，不能复用`);
         }
       }
@@ -283,8 +323,13 @@ export function loadRegistry() {
     throw new Error(`注册表校验失败（共 ${errors.length} 处）：\n  - ${errors.join('\n  - ')}`);
   }
 
+  // 管理器自身也纳入监测：动态注入，不落盘。
+  // 用户若已手工声明 self 条目（或占用 manager 这个 id），尊重用户的定义，避免重复。
+  const hasSelf = data.projects.some((p) => p?.self === true || p?.id === SELF_PROJECT_ID);
+  const projects = hasSelf ? data.projects : [buildSelfProject(), ...data.projects];
+
   // 返回展开后的副本：业务层拿到的永远是真实路径，配置里可继续用 ~ / ${ENV}
-  return { ...data, projects: data.projects.map(withExpandedPaths) };
+  return { ...data, projects: projects.map(withExpandedPaths) };
 }
 
 /**
@@ -297,11 +342,17 @@ export function saveRegistry(data) {
   if (!valid) {
     throw new Error(`拒绝保存：注册表校验失败：${errors.join('；')}`);
   }
+  // 合成条目不属于用户配置：即使调用方把 loadRegistry() 的结果原样传进来，
+  // 也不能把它写进 registry.json。
+  const persisted = {
+    ...data,
+    projects: (Array.isArray(data.projects) ? data.projects : []).filter((p) => p?.self !== true),
+  };
   fs.mkdirSync(path.dirname(REGISTRY_PATH), { recursive: true });
   const tmp = `${REGISTRY_PATH}.tmp`;
-  fs.writeFileSync(tmp, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
+  fs.writeFileSync(tmp, `${JSON.stringify(persisted, null, 2)}\n`, 'utf8');
   fs.renameSync(tmp, REGISTRY_PATH);
-  logger.debug('注册表已保存', { projects: data.projects.length });
+  logger.debug('注册表已保存', { projects: persisted.projects.length });
 }
 
 /**

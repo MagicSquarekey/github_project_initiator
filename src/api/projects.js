@@ -26,6 +26,7 @@ export async function describeProject(project) {
   const [probe, git] = await Promise.all([probeProject(project), gitSnapshot(project.path)]);
   const rt = getRuntime(project.id);
   const ports = portsOf(project);
+  const self = project.self === true;
 
   // 可更新性：需要是 git 仓库 + 配置了 git 策略。
   // 启动器边界：非 git 仓库一律手动更新——绝不为"让它可更新"而 git init 项目目录。
@@ -47,6 +48,8 @@ export async function describeProject(project) {
     path: project.path,
     enabled: project.enabled !== false,
     notes: project.notes ?? null,
+    // 管理器自身：看板据此隐藏启停按钮、显示"自身"标记
+    self,
 
     running: probe.running,
     runningVia: probe.via,
@@ -59,7 +62,12 @@ export async function describeProject(project) {
     url: project.url ?? null,
     // 多服务项目（如 AutoTestHub 的 backend+frontend）的子服务清单，看板用来展示
     services: Array.isArray(project.services) ? project.services : null,
-    uptimeSec: rt.startedAt && probe.running ? Math.floor((Date.now() - rt.startedAt) / 1000) : null,
+    // 自身条目的运行时长来自进程本身；其他项目来自管理器的启动记录
+    uptimeSec: self
+      ? Math.floor(process.uptime())
+      : rt.startedAt && probe.running
+        ? Math.floor((Date.now() - rt.startedAt) / 1000)
+        : null,
 
     startable,
     updatable,
@@ -73,6 +81,29 @@ export async function describeProject(project) {
       remotes: git.remotes,
     },
   };
+}
+
+/**
+ * 管理器自身不允许被看板控制。
+ *
+ * 这不是权限问题，而是物理限制：停止自己 = 看板立刻消失，
+ * 重启自己 = 先杀掉唯一能重新拉起自己的进程。启动同理——看板已经停了，
+ * 没有人能点这个按钮。所以把动作明确拒绝，并告诉用户该怎么做。
+ *
+ * @param {any} project
+ * @param {'start'|'stop'|'restart'|'update'} action
+ * @returns {{ ok: false, message: string }|null}
+ */
+export function guardSelfAction(project, action) {
+  if (project?.self !== true) return null;
+
+  const messages = {
+    start: '管理器不能启动自身：它正在运行。若已停止，请从终端执行 node src/index.js。',
+    stop: '管理器不能停止自身：停止后看板会立即消失。请用 Ctrl+C 或关闭终端。',
+    restart: '管理器不能重启自身：重启期间看板不可用。请在终端里手动重启。',
+    update: '管理器不通过看板更新自身：请手动 git pull 后重启进程，让新代码生效。',
+  };
+  return { ok: false, message: messages[action] ?? '管理器自身不可执行该操作。' };
 }
 
 /**
@@ -141,6 +172,8 @@ export async function start(id) {
   const { projects } = loadRegistry();
   const project = projects.find((p) => p.id === id);
   if (!project) throw new Error(`项目不存在：${id}`);
+  const guarded = guardSelfAction(project, 'start');
+  if (guarded) return guarded;
   const result = await startProject(project);
   logger.info('启动请求完成', { id, ...result });
   return result;
@@ -154,6 +187,8 @@ export async function stop(id) {
   const { projects } = loadRegistry();
   const project = projects.find((p) => p.id === id);
   if (!project) throw new Error(`项目不存在：${id}`);
+  const guarded = guardSelfAction(project, 'stop');
+  if (guarded) return guarded;
   const result = await stopProject(project);
   logger.info('停止请求完成', { id, ...result });
   return result;
@@ -167,6 +202,8 @@ export async function restart(id) {
   const { projects } = loadRegistry();
   const project = projects.find((p) => p.id === id);
   if (!project) throw new Error(`项目不存在：${id}`);
+  const guarded = guardSelfAction(project, 'restart');
+  if (guarded) return guarded;
   const result = await restartProject(project);
   logger.info('重启请求完成', { id, ...result });
   return result;
@@ -180,6 +217,8 @@ export async function update(id) {
   const { projects } = loadRegistry();
   const project = projects.find((p) => p.id === id);
   if (!project) throw new Error(`项目不存在：${id}`);
+  const guarded = guardSelfAction(project, 'update');
+  if (guarded) return guarded;
   const result = await updateProject(project);
   logger.info('更新请求完成', { id, ok: result.ok, message: result.message });
   return result;
@@ -195,6 +234,9 @@ export async function updateAll() {
   const { projects } = loadRegistry();
   const results = [];
   for (const project of projects) {
+    // 自身不参与批量更新：它不能在看板里更新自己（见 guardSelfAction），
+    // 也不该在"成功 x/y"里被算成一个失败项。
+    if (project.self === true) continue;
     if (!project.enabled) {
       results.push({ id: project.id, name: project.name, ok: false, message: '已禁用，跳过' });
       continue;

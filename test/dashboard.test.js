@@ -138,6 +138,23 @@ test('不可启动项目不渲染启动按钮', () => {
   assert.doesNotMatch(grid.children.join(''), /data-act="start"/);
 });
 
+test('自身项目只保留日志按钮，不渲染启停/重启/更新', () => {
+  const { render, grid } = loadDashboard();
+  render([proj({
+    id: 'manager', name: 'github_project_initiator', self: true,
+    running: true, kind: 'observe-only', updatable: false,
+  })]);
+  const h = grid.children.join('');
+  assert.doesNotMatch(h, /data-act="stop"/);
+  assert.doesNotMatch(h, /data-act="restart"/);
+  assert.doesNotMatch(h, /data-act="start"/);
+  assert.doesNotMatch(h, /data-act="update"/);
+  assert.match(h, /data-act="logs" data-id="manager"/);
+  // 卡片右上角标出"自身"，避免和普通 observe-only 项目混淆
+  assert.match(h, /class="kind self"/);
+  assert.match(h, /自身/);
+});
+
 test('不可更新项目显示手动更新', () => {
   const { render, grid } = loadDashboard();
   render([proj({ id: 'a', name: 'A', updatable: false })]);

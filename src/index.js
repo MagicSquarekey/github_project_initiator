@@ -25,8 +25,10 @@ const FETCH_INTERVAL_MS = 5 * 60 * 1000;
  */
 async function refreshGitRemotes() {
   const { projects } = loadRegistry();
+  // 自身条目 update 策略是 none（不能在看板里更新自己），但它的落后提交数
+  // 仍然值得展示，所以也要后台 fetch——只刷新 remote，不触发 pull。
   const repos = projects.filter(
-    (p) => p.update?.strategy !== 'none' && p.path,
+    (p) => (p.update?.strategy !== 'none' || p.self === true) && p.path,
   );
 
   logger.debug('后台刷新 git remote 状态', { count: repos.length });

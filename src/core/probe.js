@@ -84,7 +84,7 @@ export function isPidAlive(pid) {
  * 返回值带上判定依据，便于看板提示用户"这个状态是怎么来的"。
  *
  * @param {any} project registry 中的项目条目
- * @returns {Promise<{ running: boolean, via: 'port'|'procname'|'pid'|null, pids: number[] }>}
+ * @returns {Promise<{ running: boolean, via: 'port'|'procname'|'pid'|'self'|null, pids: number[] }>}
  */
 export async function probeProject(project) {
   // 端口来源有四处（ports / port / stop.ports / stop.port），同一端口常被重复声明
@@ -96,6 +96,12 @@ export async function probeProject(project) {
     ...(project.stop?.port ? [project.stop.port] : []),
   ]);
   const ports = [...portSet].filter(Number.isInteger);
+
+  // 0. 管理器自身：请求能走到这里，就说明这个进程一定活着。
+  //    不连自己的端口——TCP 自连虽然也能成功，但多一次无意义的连接。
+  if (project.self === true) {
+    return { running: true, via: 'self', openPorts: ports, pids: [process.pid] };
+  }
 
   // 1. 端口探测
   if (ports.length > 0) {

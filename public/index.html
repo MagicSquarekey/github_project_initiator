@@ -145,6 +145,7 @@ main { padding: 20px 22px 56px; max-width: 1440px; margin: 0 auto; }
   font-size: 11px; color: var(--text-faint); margin-left: auto;
   white-space: nowrap; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
 }
+.card-head .kind.self { color: var(--accent); }
 
 .status { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--text-dim); min-height: 20px; }
 .led { width: 9px; height: 9px; border-radius: 50%; flex: none; }
@@ -285,6 +286,8 @@ const I18N = {
     failedStatus: '启动失败', busy: '处理中…',
     start: '启动', stop: '停止', restart: '重启', update: '更新', manualUpdate: '手动更新', logs: '日志',
     cliTool: 'CLI 工具 · 无启停', desktopApp: '桌面程序', nonGit: '非 git',
+    selfLabel: '自身',
+    selfHint: '管理器自身：状态由当前进程提供，不能在看板里启停或更新。升级请手动 git pull 后重启。',
     dirty: '有改动', ahead: '领先', behind: '落后',
     confirmStopAll: '将停止所有正在运行的项目（包括非本管理器启动的），确定？',
     confirmStartAll: '将启动所有未运行且可启动的项目，确定？',
@@ -313,6 +316,8 @@ const I18N = {
     failedStatus: 'Start failed', busy: 'Working…',
     start: 'Start', stop: 'Stop', restart: 'Restart', update: 'Update', manualUpdate: 'Manual', logs: 'Logs',
     cliTool: 'CLI tool · no lifecycle', desktopApp: 'Desktop app', nonGit: 'non-git',
+    selfLabel: 'self',
+    selfHint: 'The manager itself: status comes from its own process; it cannot be started, stopped, or updated from this dashboard. Upgrade with git pull and a restart.',
     dirty: 'dirty', ahead: 'ahead', behind: 'behind',
     confirmStopAll: 'This stops every running project (including ones not started by this manager). Continue?',
     confirmStartAll: 'This starts every stopped and startable project. Continue?',
@@ -461,17 +466,20 @@ function metaHtml(p) {
 function actionsHtml(p) {
   const dis = busy.has(p.id) ? 'disabled' : '';
   const b = [];
-  if (p.running) {
-    b.push(`<button data-act="stop" data-id="${esc(p.id)}" ${dis}>${esc(t('stop'))}</button>`);
-    b.push(`<button data-act="restart" data-id="${esc(p.id)}" ${dis}>${esc(t('restart'))}</button>`);
-  } else if (p.startable) {
-    b.push(`<button data-act="start" data-id="${esc(p.id)}" class="primary" ${dis}>${esc(t('start'))}</button>`);
-  }
-  if (p.updatable) {
-    const label = p.git.behind > 0 ? `${t('update')} ↓${p.git.behind}` : t('update');
-    b.push(`<button data-act="update" data-id="${esc(p.id)}" ${dis}>${esc(label)}</button>`);
-  } else {
-    b.push(`<button data-act="update" data-id="${esc(p.id)}" ${dis} title="${esc(p.notes || '')}">${esc(t('manualUpdate'))}</button>`);
+  // 管理器自身：启停/重启在物理上没有意义（停掉自己看板就没了），只保留日志。
+  if (!p.self) {
+    if (p.running) {
+      b.push(`<button data-act="stop" data-id="${esc(p.id)}" ${dis}>${esc(t('stop'))}</button>`);
+      b.push(`<button data-act="restart" data-id="${esc(p.id)}" ${dis}>${esc(t('restart'))}</button>`);
+    } else if (p.startable) {
+      b.push(`<button data-act="start" data-id="${esc(p.id)}" class="primary" ${dis}>${esc(t('start'))}</button>`);
+    }
+    if (p.updatable) {
+      const label = p.git.behind > 0 ? `${t('update')} ↓${p.git.behind}` : t('update');
+      b.push(`<button data-act="update" data-id="${esc(p.id)}" ${dis}>${esc(label)}</button>`);
+    } else {
+      b.push(`<button data-act="update" data-id="${esc(p.id)}" ${dis} title="${esc(p.notes || '')}">${esc(t('manualUpdate'))}</button>`);
+    }
   }
   b.push(`<button data-act="logs" data-id="${esc(p.id)}" ${dis}>${esc(t('logs'))}</button>`);
   return `<div class="actions">${b.join('')}</div>`;
@@ -480,11 +488,13 @@ function actionsHtml(p) {
 function cardHtml(p) {
   const cls = [cardStateClass(p), p.enabled === false ? 'disabled' : ''].filter(Boolean).join(' ');
   const err = errors.get(p.id);
+  const kindLabel = p.self ? `${t('selfLabel')} · ${p.kind}` : p.kind;
+  const kindTitle = p.self ? t('selfHint') : (p.notes || '');
   return `
     <div class="card ${cls}" data-card="${esc(p.id)}">
       <div class="card-head">
         <span class="name" title="${esc(p.name)}">${esc(p.name)}</span>
-        <span class="kind">${esc(p.kind)}</span>
+        <span class="kind${p.self ? ' self' : ''}" title="${esc(kindTitle)}">${esc(kindLabel)}</span>
       </div>
       <div class="status"><span class="led ${ledClass(p)}"></span>${esc(statusText(p))}</div>
       ${metaHtml(p)}
@@ -575,7 +585,10 @@ async function bulkAction(action) {
   if (!confirm(msg)) return;
   const res = await fetch(`${API}/api/projects`);
   const data = await res.json();
-  const targets = data.projects.filter(p => action === 'start' ? (p.startable && !p.running) : p.running);
+  // 全部停止必须排除管理器自身：把它算进去等于让"全部停止"顺手关掉看板。
+  const targets = data.projects.filter(p => action === 'start'
+    ? (p.startable && !p.running)
+    : (p.running && !p.self));
   if (!targets.length) { showToast(t('noneToAct'), true); return; }
   showToast(t(action === 'start' ? 'bulkStart' : 'bulkStop', targets.length), true, 180000);
   for (const p of targets) {

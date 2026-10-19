@@ -11,7 +11,15 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { validateRegistry, expandPath, MANAGER_PORT, ROOT } from '../src/core/registry.js';
+import {
+  validateRegistry,
+  expandPath,
+  MANAGER_PORT,
+  ROOT,
+  buildSelfProject,
+  SELF_PROJECT_ID,
+  SELF_PROJECT_NAME,
+} from '../src/core/registry.js';
 
 /** 一个合法的最小项目 */
 function validProject(over = {}) {
@@ -84,6 +92,26 @@ test('被管项目不能占用管理器自身端口', () => {
   const r = check([validProject({ port: MANAGER_PORT })]);
   assert.equal(r.valid, false);
   assert.match(r.errors.join(), new RegExp(String(MANAGER_PORT)));
+});
+
+test('self 条目是唯一允许使用管理器端口的项目', () => {
+  const self = buildSelfProject();
+  assert.equal(self.port, MANAGER_PORT);
+  assert.equal(self.ports, undefined);
+  const r = check([self]);
+  assert.equal(r.valid, true, r.errors.join('\n'));
+});
+
+test('self 条目固定为只观察、不可启停、不参与更新', () => {
+  const self = buildSelfProject();
+  assert.equal(self.id, SELF_PROJECT_ID);
+  assert.equal(self.name, SELF_PROJECT_NAME);
+  assert.equal(self.self, true);
+  assert.equal(self.kind, 'observe-only');
+  assert.equal(self.path, ROOT);
+  assert.equal(self.start.command, null);
+  assert.equal(self.stop.strategy, 'none');
+  assert.equal(self.update.strategy, 'none');
 });
 
 test('两个不同项目不能占同一端口', () => {
