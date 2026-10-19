@@ -30,8 +30,11 @@ export const SELF_PROJECT_ID = 'manager';
 /** 管理器自身在看板里的显示名 */
 export const SELF_PROJECT_NAME = 'github_project_initiator';
 
-/** 版本号：与 package.json 保持同步即可，不引依赖 */
-export const VERSION = '0.0.1';
+/**
+ * 用户可见版本号（带 V 前缀）。
+ * package.json 的 version 字段按 npm 规范只能写 0.0.1，两者语义一致。
+ */
+export const VERSION = 'V0.0.1';
 
 /** 当前平台是否受支持（停止能力依赖 netstat/taskkill，仅 Windows 完整可用） */
 export const PLATFORM_SUPPORTED = process.platform === 'win32';

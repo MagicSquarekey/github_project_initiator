@@ -652,7 +652,7 @@ setInterval(refresh, 3000);
 
 // 版本号（用于顶栏显示，便于确认跑的是哪份代码）
 fetch(`${API}/api/health`).then(r => r.json()).then(d => {
-  if (d.version) document.getElementById('ver').textContent = `v${d.version}`;
+  if (d.version) document.getElementById('ver').textContent = d.version;
 }).catch(() => {});
 </script>
 </body>
