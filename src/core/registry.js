@@ -31,7 +31,7 @@ export const SELF_PROJECT_ID = 'manager';
 export const SELF_PROJECT_NAME = 'github_project_initiator';
 
 /** 版本号：与 package.json 保持同步即可，不引依赖 */
-export const VERSION = '1.1.0';
+export const VERSION = '0.0.1';
 
 /** 当前平台是否受支持（停止能力依赖 netstat/taskkill，仅 Windows 完整可用） */
 export const PLATFORM_SUPPORTED = process.platform === 'win32';
