@@ -1,0 +1,170 @@
+{
+  "sv": {
+    "name": "Svenska",
+    "tagline": "En lokal startare för alla dina GitHub-projekt: status, start/stopp och uppdatering med ett klick.",
+    "intro": "En Node.js-tjänst utan beroenden med en enkelsidig instrumentpanel. Den övervakar dina projekt, startar och stoppar dem och hämtar uppdateringar – utan att någonsin ändra deras kod.",
+    "features": [
+      ["Status i en blick", "körstatus, portar, PID:er och drifttid, uppdateras var 3:e sekund."],
+      ["Starta / stoppa / starta om", "använder varje projekts eget startskript."],
+      ["Uppdatering med ett klick", "sparbar tillfälligt ej committade ändringar, uppdaterar och återställer dem; rullar tillbaka vid fel."],
+      ["Vilken stack som helst", "Next.js, FastAPI, Go-binärer, Godot, pygame och pip-tjänster i en tabell."],
+      ["Tvåspråkigt gränssnitt och ljust/mörkt tema", "växlas i sidhuvudet, sparas lokalt."],
+      ["Endast startare", "kör aldrig git init och skriver inte i hanterade projekt."]
+    ],
+    "quickstart": "Snabbstart",
+    "openLabel": "Öppna",
+    "req": "Kräver Node.js 20+. Windows stöds fullt ut; Linux/macOS använder det inbyggda plattformslagret.",
+    "projects": "Hanterade projekt",
+    "cols": ["Projekt", "Stack", "Port", "Uppdatering"],
+    "upd": ["forksynkronisering", "git pull", "manuell"],
+    "security": [
+      "Lyssnar endast på 127.0.0.1, utan autentisering (lokalt verktyg för en användare).",
+      "Lokal konfiguration och loggar ligger utanför git; endast ett portabelt exempel publiceras.",
+      "Skriver aldrig i hanterade projekt; den enda skrivningen är uppdateringen du startar."
+    ],
+    "docs": "Dokumentation",
+    "designLabel": "Design och arkitektur (kinesiska)",
+    "fullLabel": "Detaljerad README (kinesiska)",
+    "testsLabel": "111 tester: parsning, konfigurationsvalidering, git-flöden och instrumentpanelsrendering"
+  },
+  "cs": {
+    "name": "Čeština",
+    "tagline": "Lokální spouštěč pro všechny vaše projekty na GitHubu: stav, spuštění/zastavení a aktualizace jedním kliknutím.",
+    "intro": "Služba Node.js bez závislostí s jednostránkovým panelem. Sleduje vaše projekty, spouští a zastavuje je a stahuje aktualizace – aniž by kdy změnila jejich kód.",
+    "features": [
+      ["Stav na první pohled", "stav, porty, PID a doba běhu, obnovováno každé 3 s."],
+      ["Spustit / zastavit / restartovat", "používá vlastní spouštěcí skript každého projektu."],
+      ["Aktualizace jedním kliknutím", "dočasně uloží necommitnuté změny, aktualizuje a poté je obnoví; při chybě vrátí zpět."],
+      ["Jakýkoli stack", "Next.js, FastAPI, binárky Go, Godot, pygame a pip služby v jedné tabulce."],
+      ["Dvojjazyčné UI a světlý/tmavý režim", "přepínání v záhlaví, ukládá se lokálně."],
+      ["Pouze spouštěč", "nikdy nespouští git init ani nezapisuje do spravovaných projektů."]
+    ],
+    "quickstart": "Rychlý start",
+    "openLabel": "Otevřít",
+    "req": "Vyžaduje Node.js 20+. Windows je plně podporován; Linux/macOS používají vestavěnou platformovou vrstvu.",
+    "projects": "Spravované projekty",
+    "cols": ["Projekt", "Stack", "Port", "Aktualizace"],
+    "upd": ["synchronizace forku", "git pull", "ručně"],
+    "security": [
+      "Poslouchá pouze na 127.0.0.1, bez autentizace (lokální nástroj pro jednoho uživatele).",
+      "Lokální konfigurace a logy jsou mimo git; publikuje se pouze přenosný příklad.",
+      "Nikdy nezapisuje do spravovaných projektů; jediný zápis je aktualizace, kterou spustíte."
+    ],
+    "docs": "Dokumentace",
+    "designLabel": "Design a architektura (čínsky)",
+    "fullLabel": "Podrobný README (čínsky)",
+    "testsLabel": "111 testů: parsování, validace konfigurace, git toky a vykreslování panelu"
+  },
+  "ro": {
+    "name": "Română",
+    "tagline": "Un launcher local pentru toate proiectele tale GitHub: stare, pornire/oprire și actualizare cu un singur clic.",
+    "intro": "Serviciu Node.js fără dependențe cu un panou de o singură pagină. Monitorizează proiectele, le pornește și le oprește și descarcă actualizări — fără să le modifice vreodată codul.",
+    "features": [
+      ["Stare dintr-o privire", "stare, porturi, PID-uri și timp de funcționare, reîmprospătate la 3 s."],
+      ["Pornire / oprire / repornire", "folosește scriptul de pornire propriu fiecărui proiect."],
+      ["Actualizare cu un clic", "salvează temporar modificările neconfirmate, actualizează și le restaurează; la eroare face rollback."],
+      ["Orice stack", "Next.js, FastAPI, binare Go, Godot, pygame și servicii pip într-un singur tabel."],
+      ["Interfață bilingvă și temă deschisă/închisă", "comutare din antet, memorată local."],
+      ["Doar launcher", "nu rulează niciodată git init și nu scrie în proiectele gestionate."]
+    ],
+    "quickstart": "Pornire rapidă",
+    "openLabel": "Deschide",
+    "req": "Necesită Node.js 20+. Windows este complet acceptat; Linux/macOS folosesc stratul de platformă integrat.",
+    "projects": "Proiecte gestionate",
+    "cols": ["Proiect", "Stack", "Port", "Actualizare"],
+    "upd": ["sincronizare fork", "git pull", "manual"],
+    "security": [
+      "Ascultă doar pe 127.0.0.1, fără autentificare (instrument local pentru un singur utilizator).",
+      "Configurația și jurnalele locale sunt excluse din git; se publică doar un exemplu portabil.",
+      "Nu scrie niciodată în proiectele gestionate; singura scriere este actualizarea pe care o pornești."
+    ],
+    "docs": "Documentație",
+    "designLabel": "Design și arhitectură (în chineză)",
+    "fullLabel": "README detaliat (în chineză)",
+    "testsLabel": "111 teste: parsare, validarea configurației, fluxuri git și randarea panoului"
+  },
+  "el": {
+    "name": "Ελληνικά",
+    "tagline": "Ένας τοπικός εκκινητής για όλα τα έργα σας στο GitHub: κατάσταση, εκκίνηση/διακοπή και ενημέρωση με ένα κλικ.",
+    "intro": "Υπηρεσία Node.js χωρίς εξαρτήσεις με πίνακα ελέγχου μίας σελίδας. Παρακολουθεί τα έργα σας, τα εκκινεί και τα σταματά και κατεβάζει ενημερώσεις — χωρίς ποτέ να αλλάζει τον κώδικά τους.",
+    "features": [
+      ["Κατάσταση με μια ματιά", "κατάσταση λειτουργίας, θύρες, PID και χρόνος λειτουργίας, ανανέωση κάθε 3 δευτ."],
+      ["Εκκίνηση / διακοπή / επανεκκίνηση", "χρησιμοποιεί το δικό του σενάριο εκκίνησης κάθε έργου."],
+      ["Ενημέρωση με ένα κλικ", "αποθηκεύει προσωρινά τις μη καταχωρημένες αλλαγές, ενημερώνει και τις επαναφέρει· σε αποτυχία κάνει rollback."],
+      ["Οποιαδήποτε στοίβα", "Next.js, FastAPI, δυαδικά Go, Godot, pygame και υπηρεσίες pip σε έναν πίνακα."],
+      ["Δίγλωσσο UI και φωτεινό/σκοτεινό θέμα", "εναλλαγή από την κεφαλίδα, απομνημόνευση τοπικά."],
+      ["Μόνο εκκινητής", "δεν εκτελεί ποτέ git init ούτε γράφει στα διαχειριζόμενα έργα."]
+    ],
+    "quickstart": "Γρήγορη εκκίνηση",
+    "openLabel": "Άνοιγμα",
+    "req": "Απαιτεί Node.js 20+. Τα Windows υποστηρίζονται πλήρως· Linux/macOS χρησιμοποιούν το ενσωματωμένο επίπεδο πλατφόρμας.",
+    "projects": "Διαχειριζόμενα έργα",
+    "cols": ["Έργο", "Στοίβα", "Θύρα", "Ενημέρωση"],
+    "upd": ["συγχρονισμός fork", "git pull", "χειροκίνητα"],
+    "security": [
+      "Ακούει μόνο στο 127.0.0.1, χωρίς έλεγχο ταυτότητας (τοπικό εργαλείο ενός χρήστη).",
+      "Η τοπική διαμόρφωση και τα αρχεία καταγραφής εξαιρούνται από το git· δημοσιεύεται μόνο ένα φορητό παράδειγμα.",
+      "Δεν γράφει ποτέ στα διαχειριζόμενα έργα· η μόνη εγγραφή είναι η ενημέρωση που ξεκινάτε εσείς."
+    ],
+    "docs": "Τεκμηρίωση",
+    "designLabel": "Σχεδιασμός και αρχιτεκτονική (στα κινεζικά)",
+    "fullLabel": "Λεπτομερές README (στα κινεζικά)",
+    "testsLabel": "111 δοκιμές: ανάλυση, επικύρωση διαμόρφωσης, ροές git και απόδοση πίνακα"
+  },
+  "hu": {
+    "name": "Magyar",
+    "tagline": "Egy helyi indító az összes GitHub-projektedhez: állapot, indítás/leállítás és egykattintásos frissítés.",
+    "intro": "Függőségek nélküli Node.js szolgáltatás egylapos irányítópulttal. Figyeli a projektjeidet, elindítja és leállítja őket, valamint frissítéseket tölt le – anélkül, hogy valaha módosítaná a kódjukat.",
+    "features": [
+      ["Állapot egy pillantásra", "futási állapot, portok, PID-ek és üzemidő, 3 másodpercenként frissül."],
+      ["Indítás / leállítás / újraindítás", "minden projekt saját indítószkriptjét használja."],
+      ["Frissítés egy kattintással", "ideiglenesen elmenti a nem commitolt változásokat, frissít, majd visszaállítja; hiba esetén visszagörget."],
+      ["Bármilyen stack", "Next.js, FastAPI, Go binárisok, Godot, pygame és pip szolgáltatások egy táblában."],
+      ["Kétnyelvű felület és világos/sötét téma", "a fejlécből váltható, helyben megjegyzett."],
+      ["Csak indító", "soha nem futtat git init-et és nem ír a kezelt projektekbe."]
+    ],
+    "quickstart": "Gyors indítás",
+    "openLabel": "Megnyitás",
+    "req": "Node.js 20+ szükséges. A Windows teljesen támogatott; a Linux/macOS a beépített platformréteget használja.",
+    "projects": "Kezelt projektek",
+    "cols": ["Projekt", "Stack", "Port", "Frissítés"],
+    "upd": ["fork szinkronizálás", "git pull", "kézi"],
+    "security": [
+      "Csak a 127.0.0.1 címen figyel, hitelesítés nélkül (egyszerű felhasználós helyi eszköz).",
+      "A helyi konfiguráció és naplók kívül esnek a git-en; csak egy hordozható példa kerül publikálásra.",
+      "Soha nem ír a kezelt projektekbe; az egyetlen írás az általad indított frissítés."
+    ],
+    "docs": "Dokumentáció",
+    "designLabel": "Tervezés és architektúra (kínaiul)",
+    "fullLabel": "Részletes README (kínaiul)",
+    "testsLabel": "111 teszt: elemzés, konfiguráció-ellenőrzés, git folyamatok és irányítópult-renderelés"
+  },
+  "he": {
+    "name": "עברית",
+    "tagline": "מפעיל מקומי לכל פרויקטי ה-GitHub שלך: סטטוס, הפעלה/עצירה ועדכון בלחיצה אחת.",
+    "intro": "שירות Node.js ללא תלויות עם לוח בקרה בעמוד אחד. הוא מנטר את הפרויקטים, מפעיל ועוצר אותם ומוריד עדכונים — בלי לשנות את הקוד שלהם לעולם.",
+    "features": [
+      ["סטטוס במבט אחד", "מצב ריצה, פורטים, מזהי תהליכים וזמן פעילות, מתרענן כל 3 שניות."],
+      ["הפעלה / עצירה / הפעלה מחדש", "משתמש בסקריפט ההפעלה של כל פרויקט."],
+      ["עדכון בלחיצה אחת", "שומר זמנית שינויים שלא נשמרו ב-commit, מעדכן ומשחזר אותם; בכישלון מבצע rollback."],
+      ["כל סטאק", "Next.js, FastAPI, קבצי בינארי של Go, Godot, pygame ושירותי pip בטבלה אחת."],
+      ["ממשק דו-לשוני ותמה בהירה/כהה", "החלפה מהכותרת, נשמרת מקומית."],
+      ["מפעיל בלבד", "אף פעם לא מריץ git init ולא כותב לפרויקטים המנוהלים."]
+    ],
+    "quickstart": "התחלה מהירה",
+    "openLabel": "פתח",
+    "req": "דורש Node.js 20+. Windows נתמך במלואו; Linux/macOS משתמשים בשכבת הפלטפורמה המובנית.",
+    "projects": "פרויקטים מנוהלים",
+    "cols": ["פרויקט", "סטאק", "פורט", "עדכון"],
+    "upd": ["סנכרון fork", "git pull", "ידני"],
+    "security": [
+      "מאזין רק על 127.0.0.1, ללא אימות (כלי מקומי למשתמש יחיד).",
+      "התצורה והלוגים המקומיים מוחרגים מ-git; מתפרסם רק דוגמה ניידת.",
+      "אף פעם לא כותב לפרויקטים המנוהלים; הכתיבה היחידה היא העדכון שאתה מפעיל."
+    ],
+    "docs": "תיעוד",
+    "designLabel": "עיצוב וארכיטקטורה (בסינית)",
+    "fullLabel": "README מפורט (בסינית)",
+    "testsLabel": "111 בדיקות: ניתוח, אימות תצורה, זרימות git ורינדור לוח הבקרה"
+  }
+}

@@ -1,0 +1,170 @@
+{
+  "hi": {
+    "name": "हिन्दी",
+    "tagline": "आपके सभी GitHub प्रोजेक्ट्स के लिए एक स्थानीय लॉन्चर: स्थिति, स्टार्ट/स्टॉप और एक-क्लिक अपडेट।",
+    "intro": "बिना किसी निर्भरता वाली Node.js सेवा और सिंगल-पेज डैशबोर्ड। यह आपके प्रोजेक्ट्स की निगरानी करती है, उन्हें चालू/बंद करती है और अपडेट लाती है — बिना उनका कोड बदले।",
+    "features": [
+      ["एक नज़र में स्थिति", "रनिंग स्थिति, पोर्ट, PID और अपटाइम, हर 3 सेकंड में ताज़ा।"],
+      ["स्टार्ट / स्टॉप / रीस्टार्ट", "हर प्रोजेक्ट की अपनी स्टार्ट स्क्रिप्ट का उपयोग।"],
+      ["एक-क्लिक अपडेट", "बिना कमिट किए बदलावों को अस्थायी रूप से सहेजता है, अपडेट करता है और फिर बहाल करता है; विफलता पर रोलबैक।"],
+      ["कोई भी स्टैक", "Next.js, FastAPI, Go बाइनरी, Godot, pygame और pip सेवाएँ एक ही तालिका में।"],
+      ["द्विभाषी UI और लाइट/डार्क", "हेडर से बदलें, पसंद स्थानीय रूप से याद रहती है।"],
+      ["केवल लॉन्चर", "प्रबंधित प्रोजेक्ट्स में कभी git init नहीं चलाता और न ही लिखता है।"]
+    ],
+    "quickstart": "त्वरित शुरुआत",
+    "openLabel": "खोलें",
+    "req": "Node.js 20+ आवश्यक। Windows पूरी तरह समर्थित; Linux/macOS अंतर्निहित प्लेटफ़ॉर्म लेयर का उपयोग करते हैं।",
+    "projects": "प्रबंधित प्रोजेक्ट्स",
+    "cols": ["प्रोजेक्ट", "स्टैक", "पोर्ट", "अपडेट"],
+    "upd": ["फ़ोर्क सिंक", "git pull", "मैन्युअल"],
+    "security": [
+      "केवल 127.0.0.1 पर सुनता है, कोई प्रमाणीकरण नहीं (एकल-उपयोगकर्ता स्थानीय टूल)।",
+      "स्थानीय कॉन्फ़िग और लॉग git से बाहर रखे गए हैं; केवल एक पोर्टेबल उदाहरण प्रकाशित होता है।",
+      "प्रबंधित प्रोजेक्ट्स में कभी नहीं लिखता; एकमात्र लेखन वह अपडेट है जो आप चलाते हैं।"
+    ],
+    "docs": "दस्तावेज़",
+    "designLabel": "डिज़ाइन और आर्किटेक्चर (चीनी में)",
+    "fullLabel": "विस्तृत README (चीनी में)",
+    "testsLabel": "111 परीक्षण: पार्सिंग, कॉन्फ़िग सत्यापन, git प्रवाह और डैशबोर्ड रेंडरिंग"
+  },
+  "bn": {
+    "name": "বাংলা",
+    "tagline": "আপনার সব GitHub প্রজেক্টের জন্য একটি লোকাল লঞ্চার: স্ট্যাটাস, চালু/বন্ধ এবং এক ক্লিকে আপডেট।",
+    "intro": "কোনো নির্ভরতা ছাড়া Node.js সার্ভিস ও একক-পৃষ্ঠার ড্যাশবোর্ড। এটি আপনার প্রজেক্ট মনিটর করে, চালু ও বন্ধ করে, আপডেট আনে — প্রজেক্টের কোড কখনো না বদলে।",
+    "features": [
+      ["এক নজরে স্ট্যাটাস", "চলমান অবস্থা, পোর্ট, PID ও আপটাইম, প্রতি ৩ সেকেন্ডে হালনাগাদ।"],
+      ["চালু / বন্ধ / রিস্টার্ট", "প্রতিটি প্রজেক্টের নিজস্ব স্টার্ট স্ক্রিপ্ট ব্যবহার করে।"],
+      ["এক ক্লিকে আপডেট", "কমিট না করা পরিবর্তন সাময়িকভাবে সংরক্ষণ করে, আপডেট করে এবং ফিরিয়ে দেয়; ব্যর্থ হলে রোলব্যাক।"],
+      ["যেকোনো স্ট্যাক", "Next.js, FastAPI, Go বাইনারি, Godot, pygame ও pip সার্ভিস একই টেবিলে।"],
+      ["দ্বিভাষিক UI ও লাইট/ডার্ক", "হেডার থেকে বদলান, পছন্দ লোকালি সংরক্ষিত।"],
+      ["শুধু লঞ্চার", "ম্যানেজ করা প্রজেক্টে কখনো git init চালায় না বা লেখে না।"]
+    ],
+    "quickstart": "দ্রুত শুরু",
+    "openLabel": "খুলুন",
+    "req": "Node.js 20+ প্রয়োজন। Windows সম্পূর্ণ সমর্থিত; Linux/macOS অন্তর্নির্মিত প্ল্যাটফর্ম লেয়ার ব্যবহার করে।",
+    "projects": "ম্যানেজ করা প্রজেক্ট",
+    "cols": ["প্রজেক্ট", "স্ট্যাক", "পোর্ট", "আপডেট"],
+    "upd": ["ফর্ক সিঙ্ক", "git pull", "ম্যানুয়াল"],
+    "security": [
+      "শুধু 127.0.0.1-এ শোনে, কোনো প্রমাণীকরণ নেই (একক-ব্যবহারকারী লোকাল টুল)।",
+      "লোকাল কনফিগ ও লগ git থেকে বাদ; শুধু একটি পোর্টেবল উদাহরণ প্রকাশিত হয়।",
+      "ম্যানেজ করা প্রজেক্টে কখনো লেখে না; একমাত্র লেখা হলো আপনার চালানো আপডেট।"
+    ],
+    "docs": "ডকুমেন্টেশন",
+    "designLabel": "ডিজাইন ও আর্কিটেকচার (চীনা)",
+    "fullLabel": "বিস্তারিত README (চীনা)",
+    "testsLabel": "১১১টি পরীক্ষা: পার্সিং, কনফিগ যাচাই, git প্রবাহ ও ড্যাশবোর্ড রেন্ডারিং"
+  },
+  "ur": {
+    "name": "اردو",
+    "tagline": "آپ کے تمام GitHub پروجیکٹس کے لیے ایک مقامی لانچر: اسٹیٹس، اسٹارٹ/اسٹاپ اور ایک کلک اپ ڈیٹ۔",
+    "intro": "بغیر کسی انحصار کے Node.js سروس اور سنگل پیج ڈیش بورڈ۔ یہ آپ کے پروجیکٹس کی نگرانی کرتی ہے، انہیں چلاتی اور بند کرتی ہے اور اپ ڈیٹس لاتی ہے — ان کا کوڈ کبھی بدلے بغیر۔",
+    "features": [
+      ["ایک نظر میں اسٹیٹس", "چلنے کی حالت، پورٹس، PID اور اپ ٹائم، ہر 3 سیکنڈ میں تازہ۔"],
+      ["اسٹارٹ / اسٹاپ / ری اسٹارٹ", "ہر پروجیکٹ کی اپنی اسٹارٹ اسکرپٹ استعمال کرتا ہے۔"],
+      ["ایک کلک اپ ڈیٹ", "غیر کمیٹ شدہ تبدیلیاں عارضی طور پر محفوظ کرتا ہے، اپ ڈیٹ کرتا ہے اور واپس بحال کرتا ہے؛ ناکامی پر رول بیک۔"],
+      ["کوئی بھی اسٹیک", "Next.js، FastAPI، Go بائنریز، Godot، pygame اور pip سروسز ایک ہی جدول میں۔"],
+      ["دو لسانی UI اور لائٹ/ڈارک", "ہیڈر سے تبدیل کریں، ترجیح مقامی طور پر محفوظ۔"],
+      ["صرف لانچر", "منظم پروجیکٹس میں کبھی git init نہیں چلاتا اور نہ لکھتا ہے۔"]
+    ],
+    "quickstart": "فوری آغاز",
+    "openLabel": "کھولیں",
+    "req": "Node.js 20+ درکار۔ Windows مکمل طور پر معاون؛ Linux/macOS بلٹ ان پلیٹ فارم لیئر استعمال کرتے ہیں۔",
+    "projects": "منظم پروجیکٹس",
+    "cols": ["پروجیکٹ", "اسٹیک", "پورٹ", "اپ ڈیٹ"],
+    "upd": ["فورک سنک", "git pull", "دستی"],
+    "security": [
+      "صرف 127.0.0.1 پر سنتا ہے، کوئی تصدیق نہیں (ایک صارف کا مقامی ٹول)۔",
+      "مقامی کنفیگ اور لاگز git سے خارج ہیں؛ صرف ایک پورٹیبل مثال شائع ہوتی ہے۔",
+      "منظم پروجیکٹس میں کبھی نہیں لکھتا؛ واحد تحریر وہ اپ ڈیٹ ہے جو آپ چلاتے ہیں۔"
+    ],
+    "docs": "دستاویزات",
+    "designLabel": "ڈیزائن اور آرکیٹیکچر (چینی میں)",
+    "fullLabel": "تفصیلی README (چینی میں)",
+    "testsLabel": "111 ٹیسٹ: پارسنگ، کنفیگ کی توثیق، git فلو اور ڈیش بورڈ رینڈرنگ"
+  },
+  "fa": {
+    "name": "فارسی",
+    "tagline": "یک لانچر محلی برای همه پروژه‌های GitHub شما: وضعیت، اجرا/توقف و به‌روزرسانی با یک کلیک.",
+    "intro": "سرویس Node.js بدون وابستگی با داشبورد تک‌صفحه‌ای. پروژه‌های شما را پایش می‌کند، اجرا و متوقف می‌کند و به‌روزرسانی می‌گیرد، بدون اینکه هرگز کد آن‌ها را تغییر دهد.",
+    "features": [
+      ["وضعیت در یک نگاه", "حالت اجرا، پورت‌ها، PID و مدت اجرا، هر ۳ ثانیه تازه‌سازی."],
+      ["اجرا / توقف / راه‌اندازی مجدد", "از اسکریپت اجرای خود هر پروژه استفاده می‌کند."],
+      ["به‌روزرسانی با یک کلیک", "تغییرات ثبت‌نشده را موقتاً ذخیره، به‌روزرسانی و سپس بازگردانی می‌کند؛ در صورت خطا عقب‌گرد."],
+      ["هر پشته‌ای", "Next.js، FastAPI، باینری‌های Go، Godot، pygame و سرویس‌های pip در یک جدول."],
+      ["رابط دوزبانه و تم روشن/تیره", "تغییر از سربرگ، در حافظه محلی."],
+      ["فقط لانچر", "هرگز git init اجرا نمی‌کند و در پروژه‌های مدیریت‌شده نمی‌نویسد."]
+    ],
+    "quickstart": "شروع سریع",
+    "openLabel": "باز کردن",
+    "req": "نیازمند Node.js 20+. ویندوز کاملاً پشتیبانی می‌شود؛ Linux/macOS از لایه پلتفرم داخلی استفاده می‌کنند.",
+    "projects": "پروژه‌های مدیریت‌شده",
+    "cols": ["پروژه", "پشته", "پورت", "به‌روزرسانی"],
+    "upd": ["همگام‌سازی فورک", "git pull", "دستی"],
+    "security": [
+      "فقط روی 127.0.0.1 گوش می‌دهد، بدون احراز هویت (ابزار محلی تک‌کاربره).",
+      "تنظیمات و لاگ‌های محلی از git خارج هستند؛ فقط یک نمونه قابل‌حمل منتشر می‌شود.",
+      "هرگز در پروژه‌های مدیریت‌شده نمی‌نویسد؛ تنها نوشتن، به‌روزرسانی‌ای است که شما اجرا می‌کنید."
+    ],
+    "docs": "مستندات",
+    "designLabel": "طراحی و معماری (به چینی)",
+    "fullLabel": "README مفصل (به چینی)",
+    "testsLabel": "۱۱۱ تست: تجزیه، اعتبارسنجی تنظیمات، جریان‌های git و رندر داشبورد"
+  },
+  "tr": {
+    "name": "Türkçe",
+    "tagline": "Tüm GitHub projeleriniz için tek bir yerel başlatıcı: durum, başlat/durdur ve tek tıkla güncelleme.",
+    "intro": "Bağımlılığı olmayan Node.js servisi ve tek sayfalık panel. Projelerinizi izler, başlatıp durdurur ve güncellemeleri çeker — kodlarına asla dokunmadan.",
+    "features": [
+      ["Bir bakışta durum", "çalışma durumu, portlar, PID ve çalışma süresi, her 3 saniyede yenilenir."],
+      ["Başlat / durdur / yeniden başlat", "her projenin kendi başlatma betiğini kullanır."],
+      ["Tek tıkla güncelleme", "işlenmemiş değişiklikleri geçici olarak saklar, günceller ve geri yükler; hata olursa geri alır."],
+      ["Her stack", "Next.js, FastAPI, Go ikili dosyaları, Godot, pygame ve pip servisleri tek tabloda."],
+      ["İki dilli arayüz ve açık/koyu tema", "üst çubuktan değiştirilir, yerelde saklanır."],
+      ["Yalnızca başlatıcı", "yönetilen projelerde asla git init çalıştırmaz ve yazmaz."]
+    ],
+    "quickstart": "Hızlı başlangıç",
+    "openLabel": "Aç",
+    "req": "Node.js 20+ gerekir. Windows tam desteklenir; Linux/macOS yerleşik platform katmanını kullanır.",
+    "projects": "Yönetilen projeler",
+    "cols": ["Proje", "Stack", "Port", "Güncelleme"],
+    "upd": ["fork senkronizasyonu", "git pull", "manuel"],
+    "security": [
+      "Yalnızca 127.0.0.1 üzerinde dinler, kimlik doğrulama yok (tek kullanıcılı yerel araç).",
+      "Yerel yapılandırma ve günlükler git dışında tutulur; yalnızca taşınabilir bir örnek yayınlanır.",
+      "Yönetilen projelere asla yazmaz; tek yazma işlemi sizin başlattığınız güncellemedir."
+    ],
+    "docs": "Belgeler",
+    "designLabel": "Tasarım ve mimari (Çince)",
+    "fullLabel": "Ayrıntılı README (Çince)",
+    "testsLabel": "111 test: ayrıştırma, yapılandırma doğrulama, git akışları ve panel oluşturma"
+  },
+  "vi": {
+    "name": "Tiếng Việt",
+    "tagline": "Trình khởi chạy cục bộ cho mọi dự án GitHub của bạn: trạng thái, khởi động/dừng và cập nhật một cú nhấp.",
+    "intro": "Dịch vụ Node.js không phụ thuộc với bảng điều khiển một trang. Theo dõi dự án, khởi động và dừng chúng, tải bản cập nhật — không bao giờ sửa mã nguồn của chúng.",
+    "features": [
+      ["Trạng thái trong nháy mắt", "trạng thái chạy, cổng, PID và thời gian hoạt động, làm mới mỗi 3 giây."],
+      ["Khởi động / dừng / khởi động lại", "dùng lại script khởi động riêng của từng dự án."],
+      ["Cập nhật một cú nhấp", "tạm lưu thay đổi chưa commit, cập nhật rồi khôi phục; nếu lỗi sẽ hoàn tác."],
+      ["Mọi công nghệ", "Next.js, FastAPI, tệp nhị phân Go, Godot, pygame và dịch vụ pip trong cùng một bảng."],
+      ["Giao diện song ngữ và sáng/tối", "chuyển ở thanh đầu, ghi nhớ cục bộ."],
+      ["Chỉ là trình khởi chạy", "không bao giờ chạy git init hay ghi vào dự án được quản lý."]
+    ],
+    "quickstart": "Bắt đầu nhanh",
+    "openLabel": "Mở",
+    "req": "Cần Node.js 20+. Windows được hỗ trợ đầy đủ; Linux/macOS dùng lớp nền tảng tích hợp.",
+    "projects": "Dự án được quản lý",
+    "cols": ["Dự án", "Công nghệ", "Cổng", "Cập nhật"],
+    "upd": ["đồng bộ fork", "git pull", "thủ công"],
+    "security": [
+      "Chỉ lắng nghe trên 127.0.0.1, không xác thực (công cụ cục bộ một người dùng).",
+      "Cấu hình và nhật ký cục bộ được loại khỏi git; chỉ công bố một ví dụ di động.",
+      "Không bao giờ ghi vào dự án được quản lý; thao tác ghi duy nhất là cập nhật do bạn kích hoạt."
+    ],
+    "docs": "Tài liệu",
+    "designLabel": "Thiết kế và kiến trúc (tiếng Trung)",
+    "fullLabel": "README chi tiết (tiếng Trung)",
+    "testsLabel": "111 bài kiểm thử: phân tích, xác thực cấu hình, luồng git và kết xuất bảng điều khiển"
+  }
+}

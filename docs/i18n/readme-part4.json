@@ -1,0 +1,170 @@
+{
+  "th": {
+    "name": "ไทย",
+    "tagline": "ตัวเรียกใช้งานในเครื่องสำหรับทุกโปรเจกต์ GitHub ของคุณ: ดูสถานะ เริ่ม/หยุด และอัปเดตในคลิกเดียว",
+    "intro": "บริการ Node.js ที่ไม่มี dependency พร้อมแดชบอร์ดหน้าเดียว คอยตรวจสอบโปรเจกต์ เริ่มและหยุด รวมถึงดึงอัปเดต โดยไม่แก้ไขโค้ดของโปรเจกต์เลย",
+    "features": [
+      ["สถานะในพริบตา", "สถานะการทำงาน พอร์ต PID และเวลาทำงาน รีเฟรชทุก 3 วินาที"],
+      ["เริ่ม / หยุด / รีสตาร์ท", "ใช้สคริปต์เริ่มต้นของแต่ละโปรเจกต์"],
+      ["อัปเดตในคลิกเดียว", "สำรองการเปลี่ยนแปลงที่ยังไม่ commit ชั่วคราว อัปเดตแล้วคืนกลับ หากล้มเหลวจะย้อนกลับ"],
+      ["ทุกสแตก", "Next.js, FastAPI, ไบนารี Go, Godot, pygame และบริการ pip ในตารางเดียว"],
+      ["UI สองภาษาและธีมสว่าง/มืด", "สลับจากแถบหัว จำค่าไว้ในเครื่อง"],
+      ["เป็นเพียงตัวเรียกใช้งาน", "ไม่รัน git init และไม่เขียนลงโปรเจกต์ที่จัดการ"]
+    ],
+    "quickstart": "เริ่มต้นอย่างรวดเร็ว",
+    "openLabel": "เปิด",
+    "req": "ต้องใช้ Node.js 20+ รองรับ Windows อย่างเต็มที่ ส่วน Linux/macOS ใช้เลเยอร์แพลตฟอร์มในตัว",
+    "projects": "โปรเจกต์ที่จัดการ",
+    "cols": ["โปรเจกต์", "สแตก", "พอร์ต", "อัปเดต"],
+    "upd": ["ซิงก์ฟอร์ก", "git pull", "ด้วยตนเอง"],
+    "security": [
+      "รับฟังเฉพาะ 127.0.0.1 ไม่มีการยืนยันตัวตน (เครื่องมือในเครื่องสำหรับผู้ใช้คนเดียว)",
+      "การตั้งค่าและบันทึกในเครื่องถูกตัดออกจาก git เผยแพร่เฉพาะตัวอย่างที่พกพาได้",
+      "ไม่เขียนลงโปรเจกต์ที่จัดการ การเขียนเดียวคือการอัปเดตที่คุณสั่ง"
+    ],
+    "docs": "เอกสาร",
+    "designLabel": "การออกแบบและสถาปัตยกรรม (ภาษาจีน)",
+    "fullLabel": "README ฉบับละเอียด (ภาษาจีน)",
+    "testsLabel": "111 การทดสอบ: การแยกวิเคราะห์ การตรวจสอบการตั้งค่า ขั้นตอน git และการเรนเดอร์แดชบอร์ด"
+  },
+  "id": {
+    "name": "Bahasa Indonesia",
+    "tagline": "Peluncur lokal untuk semua proyek GitHub Anda: status, mulai/hentikan, dan pembaruan sekali klik.",
+    "intro": "Layanan Node.js tanpa dependensi dengan dasbor satu halaman. Memantau proyek Anda, menyalakan dan mematikannya, serta menarik pembaruan — tanpa pernah mengubah kodenya.",
+    "features": [
+      ["Status sekilas", "status berjalan, port, PID, dan waktu aktif, diperbarui tiap 3 detik."],
+      ["Mulai / hentikan / mulai ulang", "memakai skrip mulai milik tiap proyek."],
+      ["Pembaruan sekali klik", "menyimpan sementara perubahan yang belum di-commit, memperbarui, lalu memulihkannya; gagal berarti rollback."],
+      ["Semua stack", "Next.js, FastAPI, biner Go, Godot, pygame, dan layanan pip dalam satu tabel."],
+      ["UI dua bahasa dan tema terang/gelap", "beralih dari header, diingat secara lokal."],
+      ["Hanya peluncur", "tidak pernah menjalankan git init atau menulis ke proyek yang dikelola."]
+    ],
+    "quickstart": "Mulai cepat",
+    "openLabel": "Buka",
+    "req": "Memerlukan Node.js 20+. Windows didukung penuh; Linux/macOS memakai lapisan platform bawaan.",
+    "projects": "Proyek yang dikelola",
+    "cols": ["Proyek", "Stack", "Port", "Pembaruan"],
+    "upd": ["sinkronisasi fork", "git pull", "manual"],
+    "security": [
+      "Hanya mendengarkan di 127.0.0.1, tanpa autentikasi (alat lokal satu pengguna).",
+      "Konfigurasi dan log lokal dikecualikan dari git; hanya contoh portabel yang dipublikasikan.",
+      "Tidak pernah menulis ke proyek yang dikelola; satu-satunya penulisan adalah pembaruan yang Anda picu."
+    ],
+    "docs": "Dokumentasi",
+    "designLabel": "Desain dan arsitektur (Tionghoa)",
+    "fullLabel": "README terperinci (Tionghoa)",
+    "testsLabel": "111 pengujian: parsing, validasi konfigurasi, alur git, dan rendering dasbor"
+  },
+  "ms": {
+    "name": "Bahasa Melayu",
+    "tagline": "Pelancar setempat untuk semua projek GitHub anda: status, mula/henti dan kemas kini sekali klik.",
+    "intro": "Perkhidmatan Node.js tanpa kebergantungan dengan papan pemuka satu halaman. Memantau projek anda, memulakan dan menghentikannya, serta menarik kemas kini — tanpa pernah mengubah kodnya.",
+    "features": [
+      ["Status sekilas pandang", "status berjalan, port, PID dan masa aktif, dikemas kini setiap 3 saat."],
+      ["Mula / henti / mula semula", "menggunakan skrip mula setiap projek."],
+      ["Kemas kini sekali klik", "menyimpan sementara perubahan yang belum di-commit, mengemas kini dan memulihkannya; jika gagal, rollback."],
+      ["Sebarang stack", "Next.js, FastAPI, binari Go, Godot, pygame dan perkhidmatan pip dalam satu jadual."],
+      ["UI dwibahasa dan tema cerah/gelap", "tukar dari pengepala, diingati secara setempat."],
+      ["Hanya pelancar", "tidak pernah menjalankan git init atau menulis ke projek yang diurus."]
+    ],
+    "quickstart": "Mula pantas",
+    "openLabel": "Buka",
+    "req": "Memerlukan Node.js 20+. Windows disokong sepenuhnya; Linux/macOS menggunakan lapisan platform terbina dalam.",
+    "projects": "Projek yang diurus",
+    "cols": ["Projek", "Stack", "Port", "Kemas kini"],
+    "upd": ["penyegerakan fork", "git pull", "manual"],
+    "security": [
+      "Hanya mendengar pada 127.0.0.1, tanpa pengesahan (alat setempat satu pengguna).",
+      "Konfigurasi dan log setempat dikecualikan daripada git; hanya contoh mudah alih diterbitkan.",
+      "Tidak pernah menulis ke projek yang diurus; satu-satunya penulisan ialah kemas kini yang anda picu."
+    ],
+    "docs": "Dokumentasi",
+    "designLabel": "Reka bentuk dan seni bina (Cina)",
+    "fullLabel": "README terperinci (Cina)",
+    "testsLabel": "111 ujian: penghuraian, pengesahan konfigurasi, aliran git dan pemaparan papan pemuka"
+  },
+  "nl": {
+    "name": "Nederlands",
+    "tagline": "Eén lokale launcher voor al je GitHub-projecten: status, starten/stoppen en updaten met één klik.",
+    "intro": "Een Node.js-dienst zonder afhankelijkheden met een dashboard op één pagina. Het bewaakt je projecten, start en stopt ze en haalt updates op — zonder ooit hun code aan te passen.",
+    "features": [
+      ["Status in één oogopslag", "status, poorten, PID's en uptime, elke 3 seconden vernieuwd."],
+      ["Starten / stoppen / herstarten", "gebruikt het eigen startscript van elk project."],
+      ["Updaten met één klik", "niet-gecommitte wijzigingen worden tijdelijk opgeslagen, waarna de update volgt en ze worden hersteld; bij een fout wordt teruggedraaid."],
+      ["Elke stack", "Next.js, FastAPI, Go-binaries, Godot, pygame en pip-diensten in één tabel."],
+      ["Tweetalige UI en licht/donker thema", "wisselen in de kop, lokaal onthouden."],
+      ["Alleen launcher", "voert nooit git init uit en schrijft niet in beheerde projecten."]
+    ],
+    "quickstart": "Snel starten",
+    "openLabel": "Openen",
+    "req": "Vereist Node.js 20+. Windows volledig ondersteund; Linux/macOS gebruiken de ingebouwde platformlaag.",
+    "projects": "Beheerde projecten",
+    "cols": ["Project", "Stack", "Poort", "Update"],
+    "upd": ["fork-synchronisatie", "git pull", "handmatig"],
+    "security": [
+      "Luistert alleen op 127.0.0.1, zonder authenticatie (lokaal hulpmiddel voor één gebruiker).",
+      "Lokale configuratie en logs blijven buiten git; alleen een draagbaar voorbeeld wordt gepubliceerd.",
+      "Schrijft nooit in beheerde projecten; de enige schrijfactie is de update die jij start."
+    ],
+    "docs": "Documentatie",
+    "designLabel": "Ontwerp en architectuur (Chinees)",
+    "fullLabel": "Uitgebreide README (Chinees)",
+    "testsLabel": "111 tests: parsing, configuratievalidatie, git-flows en dashboard-rendering"
+  },
+  "pl": {
+    "name": "Polski",
+    "tagline": "Lokalny launcher dla wszystkich Twoich projektów GitHub: status, uruchamianie/zatrzymywanie i aktualizacja jednym kliknięciem.",
+    "intro": "Usługa Node.js bez zależności z jednostronicowym pulpitem. Monitoruje projekty, uruchamia i zatrzymuje je oraz pobiera aktualizacje — nigdy nie zmieniając ich kodu.",
+    "features": [
+      ["Status na pierwszy rzut oka", "stan, porty, PID-y i czas działania, odświeżane co 3 s."],
+      ["Uruchom / zatrzymaj / uruchom ponownie", "korzysta z własnego skryptu startowego projektu."],
+      ["Aktualizacja jednym kliknięciem", "tymczasowo zapisuje niezacommitowane zmiany, aktualizuje i przywraca je; przy błędzie wycofuje."],
+      ["Dowolny stack", "Next.js, FastAPI, binaria Go, Godot, pygame i usługi pip w jednej tabeli."],
+      ["Dwujęzyczny interfejs i motyw jasny/ciemny", "przełączanie w nagłówku, zapamiętywane lokalnie."],
+      ["Tylko launcher", "nigdy nie uruchamia git init ani nie zapisuje w zarządzanych projektach."]
+    ],
+    "quickstart": "Szybki start",
+    "openLabel": "Otwórz",
+    "req": "Wymaga Node.js 20+. Windows w pełni obsługiwany; Linux/macOS korzystają z wbudowanej warstwy platformowej.",
+    "projects": "Zarządzane projekty",
+    "cols": ["Projekt", "Stack", "Port", "Aktualizacja"],
+    "upd": ["synchronizacja forka", "git pull", "ręcznie"],
+    "security": [
+      "Nasłuchuje tylko na 127.0.0.1, bez uwierzytelniania (lokalne narzędzie dla jednego użytkownika).",
+      "Lokalna konfiguracja i logi są poza git; publikowany jest tylko przenośny przykład.",
+      "Nigdy nie zapisuje w zarządzanych projektach; jedynym zapisem jest aktualizacja uruchomiona przez Ciebie."
+    ],
+    "docs": "Dokumentacja",
+    "designLabel": "Projekt i architektura (po chińsku)",
+    "fullLabel": "Szczegółowy README (po chińsku)",
+    "testsLabel": "111 testów: parsowanie, walidacja konfiguracji, przepływy git i renderowanie pulpitu"
+  },
+  "uk": {
+    "name": "Українська",
+    "tagline": "Локальний лаунчер для всіх ваших проєктів GitHub: статус, запуск/зупинка та оновлення одним кліком.",
+    "intro": "Сервіс Node.js без залежностей з односторінковою панеллю. Відстежує проєкти, запускає й зупиняє їх, завантажує оновлення — ніколи не змінюючи їхній код.",
+    "features": [
+      ["Статус з першого погляду", "стан, порти, PID і час роботи, оновлюється кожні 3 с."],
+      ["Запуск / зупинка / перезапуск", "використовує власний скрипт запуску проєкту."],
+      ["Оновлення одним кліком", "тимчасово зберігає незакомічені зміни, оновлює й відновлює їх; у разі помилки відкочує."],
+      ["Будь-який стек", "Next.js, FastAPI, бінарники Go, Godot, pygame та pip-сервіси в одній таблиці."],
+      ["Двомовний інтерфейс і світла/темна тема", "перемикання в шапці, запам'ятовується локально."],
+      ["Лише лаунчер", "ніколи не виконує git init і не пише в керовані проєкти."]
+    ],
+    "quickstart": "Швидкий старт",
+    "openLabel": "Відкрити",
+    "req": "Потрібен Node.js 20+. Windows підтримується повністю; Linux/macOS використовують вбудований рівень платформи.",
+    "projects": "Керовані проєкти",
+    "cols": ["Проєкт", "Стек", "Порт", "Оновлення"],
+    "upd": ["синхронізація форку", "git pull", "вручну"],
+    "security": [
+      "Слухає лише 127.0.0.1, без автентифікації (локальний інструмент для одного користувача).",
+      "Локальна конфігурація та журнали виключені з git; публікується лише переносний приклад.",
+      "Ніколи не пише в керовані проєкти; єдиний запис — оновлення, яке запускаєте ви."
+    ],
+    "docs": "Документація",
+    "designLabel": "Дизайн та архітектура (китайською)",
+    "fullLabel": "Детальний README (китайською)",
+    "testsLabel": "111 тестів: парсинг, перевірка конфігурації, git-процеси та рендеринг панелі"
+  }
+}

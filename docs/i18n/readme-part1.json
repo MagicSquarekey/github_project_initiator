@@ -1,0 +1,170 @@
+{
+  "en": {
+    "name": "English",
+    "tagline": "One local launcher for all your GitHub projects: status, start/stop, one-click update.",
+    "intro": "A zero-dependency Node.js service with a single-page dashboard. It watches the projects on your machine, starts and stops them, and pulls updates — without ever touching their code.",
+    "features": [
+      ["Status at a glance", "live running state, ports, PIDs and uptime, refreshed every 3 seconds."],
+      ["Start / stop / restart", "reuses each project's own start script, so its original environment handling is preserved."],
+      ["One-click update", "automatically stashes uncommitted changes, pulls, then restores them; failures roll back."],
+      ["Any stack", "Next.js, FastAPI, Go binaries, Godot, pygame and pip-installed services in one table."],
+      ["Bilingual UI, light/dark", "Chinese/English toggle and theme switch, remembered locally."],
+      ["Launcher only", "never runs git init in, writes to, or restructures the managed projects."]
+    ],
+    "quickstart": "Quick start",
+    "openLabel": "Open",
+    "req": "Requires Node.js 20+. Windows is fully supported; Linux/macOS use the built-in platform layer.",
+    "projects": "Managed projects",
+    "cols": ["Project", "Stack", "Port", "Update"],
+    "upd": ["fork sync", "git pull", "manual"],
+    "security": [
+      "Listens on 127.0.0.1 only; no authentication (single-user local tool).",
+      "Your local config and logs are git-ignored; only a portable example is published.",
+      "Never writes into managed projects — the only write is the update you explicitly trigger."
+    ],
+    "docs": "Documentation",
+    "designLabel": "Design and architecture (Chinese)",
+    "fullLabel": "Detailed README (Chinese)",
+    "testsLabel": "111 tests: parsing, config validation, git flows, dashboard rendering"
+  },
+  "zh-CN": {
+    "name": "简体中文",
+    "tagline": "一个本地启动器，统一管理你的 GitHub 项目：看状态、启停、一键更新。",
+    "intro": "零依赖的 Node.js 服务 + 单页看板。监控本机项目、启动停止、拉取更新，全程不改动项目本身。",
+    "features": [
+      ["状态一览", "实时运行状态、端口、PID 与运行时长，每 3 秒刷新。"],
+      ["启动 / 停止 / 重启", "复用项目自带的启动脚本，保留其原有的环境处理逻辑。"],
+      ["一键更新", "自动暂存未提交改动，拉取后恢复；失败则回滚。"],
+      ["任意技术栈", "Next.js、FastAPI、Go 二进制、Godot、pygame 与 pip 服务同表管理。"],
+      ["中英双语 + 明暗主题", "顶栏切换，偏好本地记住。"],
+      ["只做启动器", "绝不在被管项目里 git init、写入文件或改变结构。"]
+    ],
+    "quickstart": "快速开始",
+    "openLabel": "打开",
+    "req": "需要 Node.js 20+。Windows 完整支持；Linux/macOS 使用内置平台适配层。",
+    "projects": "管理范围",
+    "cols": ["项目", "技术栈", "端口", "更新"],
+    "upd": ["fork 同步", "git pull", "手动"],
+    "security": [
+      "仅监听 127.0.0.1，无鉴权（单机单人工具）。",
+      "本机配置与日志已被 git 忽略，仓库只发布可移植示例。",
+      "不向被管项目写入任何内容——唯一的写操作是你主动触发的更新。"
+    ],
+    "docs": "文档",
+    "designLabel": "设计与架构（中文）",
+    "fullLabel": "详细中文说明",
+    "testsLabel": "111 项测试：解析、配置校验、git 流程、看板渲染"
+  },
+  "zh-TW": {
+    "name": "繁體中文",
+    "tagline": "一個本機啟動器，統一管理你的 GitHub 專案：看狀態、啟停、一鍵更新。",
+    "intro": "零依賴的 Node.js 服務 + 單頁看板。監控本機專案、啟動停止、拉取更新，全程不改動專案本身。",
+    "features": [
+      ["狀態一覽", "即時執行狀態、連接埠、PID 與執行時間，每 3 秒更新。"],
+      ["啟動 / 停止 / 重新啟動", "沿用專案自帶的啟動腳本，保留其原有的環境處理邏輯。"],
+      ["一鍵更新", "自動暫存未提交的變更，拉取後還原；失敗則回滾。"],
+      ["任意技術棧", "Next.js、FastAPI、Go 執行檔、Godot、pygame 與 pip 服務同表管理。"],
+      ["中英雙語 + 明暗主題", "頂欄切換，偏好本機記住。"],
+      ["只做啟動器", "絕不在被管專案裡 git init、寫入檔案或改變結構。"]
+    ],
+    "quickstart": "快速開始",
+    "openLabel": "開啟",
+    "req": "需要 Node.js 20+。Windows 完整支援；Linux/macOS 使用內建平台適配層。",
+    "projects": "管理範圍",
+    "cols": ["專案", "技術棧", "連接埠", "更新"],
+    "upd": ["fork 同步", "git pull", "手動"],
+    "security": [
+      "僅監聽 127.0.0.1，無驗證（單機單人工具）。",
+      "本機設定與日誌已被 git 忽略，倉庫只發布可攜範例。",
+      "不向被管專案寫入任何內容——唯一的寫入操作是你主動觸發的更新。"
+    ],
+    "docs": "文件",
+    "designLabel": "設計與架構（中文）",
+    "fullLabel": "詳細中文說明",
+    "testsLabel": "111 項測試：解析、設定驗證、git 流程、看板渲染"
+  },
+  "ja": {
+    "name": "日本語",
+    "tagline": "すべての GitHub プロジェクトを 1 か所で管理するローカルランチャー。状態確認・起動/停止・ワンクリック更新。",
+    "intro": "依存関係ゼロの Node.js サービスとシングルページダッシュボード。マシン上のプロジェクトを監視し、起動・停止・更新を行い、プロジェクト自体には一切変更を加えません。",
+    "features": [
+      ["状態を一覧", "実行状態・ポート・PID・稼働時間を 3 秒ごとに更新。"],
+      ["起動 / 停止 / 再起動", "各プロジェクトの起動スクリプトをそのまま利用します。"],
+      ["ワンクリック更新", "未コミットの変更を自動 stash し、更新後に復元。失敗時はロールバック。"],
+      ["あらゆるスタック", "Next.js、FastAPI、Go バイナリ、Godot、pygame、pip サービスを同じ表で。"],
+      ["中英バイリンガル + ライト/ダーク", "ヘッダーで切替、設定はローカル保存。"],
+      ["ランチャー専用", "管理対象で git init やファイル書き込み、構造変更は行いません。"]
+    ],
+    "quickstart": "クイックスタート",
+    "openLabel": "開く",
+    "req": "Node.js 20+ が必要です。Windows は完全対応、Linux/macOS は内蔵プラットフォーム層を利用します。",
+    "projects": "管理対象",
+    "cols": ["プロジェクト", "スタック", "ポート", "更新"],
+    "upd": ["フォーク同期", "git pull", "手動"],
+    "security": [
+      "127.0.0.1 のみで待ち受け、認証なし（単一ユーザー向けローカルツール）。",
+      "ローカル設定とログは git 管理外。公開されるのは可搬なサンプルのみ。",
+      "管理対象には書き込みません。書き込みは明示的な更新操作のみ。"
+    ],
+    "docs": "ドキュメント",
+    "designLabel": "設計とアーキテクチャ（中国語）",
+    "fullLabel": "詳細な説明（中国語）",
+    "testsLabel": "111 件のテスト：パース、設定検証、git フロー、ダッシュボード描画"
+  },
+  "ko": {
+    "name": "한국어",
+    "tagline": "모든 GitHub 프로젝트를 한곳에서 관리하는 로컬 런처 — 상태 확인, 시작/중지, 원클릭 업데이트.",
+    "intro": "의존성이 없는 Node.js 서비스와 단일 페이지 대시보드. 머신의 프로젝트를 모니터링하고 시작·중지·업데이트하며, 프로젝트 자체는 절대 수정하지 않습니다.",
+    "features": [
+      ["한눈에 보는 상태", "실행 상태, 포트, PID, 가동 시간을 3초마다 갱신."],
+      ["시작 / 중지 / 재시작", "각 프로젝트의 기존 시작 스크립트를 그대로 사용."],
+      ["원클릭 업데이트", "커밋되지 않은 변경을 자동 stash 후 업데이트하고 복원. 실패 시 롤백."],
+      ["어떤 스택이든", "Next.js, FastAPI, Go 바이너리, Godot, pygame, pip 서비스를 한 표에."],
+      ["중/영 이중 언어 + 라이트/다크", "헤더에서 전환, 설정은 로컬 저장."],
+      ["런처 전용", "관리 대상에서 git init, 파일 쓰기, 구조 변경을 하지 않습니다."]
+    ],
+    "quickstart": "빠른 시작",
+    "openLabel": "열기",
+    "req": "Node.js 20+ 필요. Windows 완전 지원, Linux/macOS는 내장 플랫폼 계층 사용.",
+    "projects": "관리 대상",
+    "cols": ["프로젝트", "스택", "포트", "업데이트"],
+    "upd": ["포크 동기화", "git pull", "수동"],
+    "security": [
+      "127.0.0.1에서만 수신, 인증 없음(단일 사용자 로컬 도구).",
+      "로컬 설정과 로그는 git에서 제외되며, 이식 가능한 예시만 공개됩니다.",
+      "관리 대상에 쓰지 않습니다. 쓰기는 사용자가 명시적으로 실행한 업데이트뿐입니다."
+    ],
+    "docs": "문서",
+    "designLabel": "설계 및 아키텍처(중국어)",
+    "fullLabel": "상세 설명(중국어)",
+    "testsLabel": "111개 테스트: 파싱, 설정 검증, git 흐름, 대시보드 렌더링"
+  },
+  "es": {
+    "name": "Español",
+    "tagline": "Un lanzador local para todos tus proyectos de GitHub: estado, inicio/parada y actualización con un clic.",
+    "intro": "Servicio Node.js sin dependencias con un panel de una sola página. Supervisa tus proyectos, los inicia y detiene, y descarga actualizaciones sin modificar nunca su código.",
+    "features": [
+      ["Estado de un vistazo", "estado, puertos, PID y tiempo activo, actualizado cada 3 s."],
+      ["Iniciar / detener / reiniciar", "reutiliza el script de inicio propio de cada proyecto."],
+      ["Actualización con un clic", "guarda temporalmente los cambios sin confirmar, actualiza y los restaura; si falla, revierte."],
+      ["Cualquier stack", "Next.js, FastAPI, binarios Go, Godot, pygame y servicios pip en una sola tabla."],
+      ["Interfaz bilingüe y tema claro/oscuro", "cambio desde la cabecera, recordado localmente."],
+      ["Solo lanzador", "nunca ejecuta git init ni escribe en los proyectos gestionados."]
+    ],
+    "quickstart": "Inicio rápido",
+    "openLabel": "Abrir",
+    "req": "Requiere Node.js 20+. Windows totalmente compatible; Linux/macOS usan la capa de plataforma integrada.",
+    "projects": "Proyectos gestionados",
+    "cols": ["Proyecto", "Stack", "Puerto", "Actualización"],
+    "upd": ["sincronización de fork", "git pull", "manual"],
+    "security": [
+      "Escucha solo en 127.0.0.1, sin autenticación (herramienta local de un solo usuario).",
+      "La configuración y los registros locales están excluidos de git; solo se publica un ejemplo portátil.",
+      "Nunca escribe en los proyectos gestionados; la única escritura es la actualización que tú activas."
+    ],
+    "docs": "Documentación",
+    "designLabel": "Diseño y arquitectura (chino)",
+    "fullLabel": "README detallado (chino)",
+    "testsLabel": "111 pruebas: análisis, validación de configuración, flujos git y renderizado del panel"
+  }
+}
