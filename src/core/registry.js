@@ -16,7 +16,7 @@ const REGISTRY_PATH = path.join(ROOT, 'data', 'registry.json');
 
 const VALID_KINDS = ['node-service', 'python-service', 'go-binary', 'cli-tool', 'desktop-app', 'observe-only'];
 const VALID_STOP_STRATEGIES = ['port', 'procname', 'command', 'none'];
-const VALID_UPDATE_STRATEGIES = ['git', 'git-fork', 'git-clone', 'none'];
+const VALID_UPDATE_STRATEGIES = ['git', 'git-fork', 'none'];
 
 /** 管理器自身端口，注册表校验时用来检测被管项目是否冲突 */
 export const MANAGER_PORT = 8780;
@@ -134,18 +134,8 @@ function validateProject(p, index) {
   const update = p.update;
   if (!update || typeof update !== 'object') {
     errors.push(`${where}.update: 必填对象`);
-  } else {
-    if (!VALID_UPDATE_STRATEGIES.includes(update.strategy)) {
-      errors.push(`${where}.update.strategy: 必须是 ${VALID_UPDATE_STRATEGIES.join(' / ')}`);
-    }
-    // git-clone 需要知道上游地址，否则没法拉
-    if (update.strategy === 'git-clone') {
-      if (typeof update.repoUrl !== 'string' || !update.repoUrl) {
-        errors.push(`${where}.update.repoUrl: strategy=git-clone 时必填（上游仓库地址）`);
-      } else if (!/^(https?:\/\/|git@)/i.test(update.repoUrl)) {
-        errors.push(`${where}.update.repoUrl: 必须是 http(s):// 或 git@ 开头的仓库地址`);
-      }
-    }
+  } else if (!VALID_UPDATE_STRATEGIES.includes(update.strategy)) {
+    errors.push(`${where}.update.strategy: 必须是 ${VALID_UPDATE_STRATEGIES.join(' / ')}`);
   }
 
   if (typeof p.startupTimeoutMs !== 'number' || p.startupTimeoutMs < 0) {

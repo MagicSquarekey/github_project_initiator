@@ -27,14 +27,9 @@ export async function describeProject(project) {
   const rt = getRuntime(project.id);
   const ports = portsOf(project);
 
-  // 可更新性：
-  //   git / git-fork  需要已是 git 仓库
-  //   git-clone       允许尚不是仓库（首次更新时自动入库），只需配了 repoUrl
-  const updateStrategy = project.update?.strategy ?? 'none';
-  const updatable =
-    updateStrategy === 'git-clone'
-      ? Boolean(project.update?.repoUrl)
-      : git.isRepo && updateStrategy !== 'none';
+  // 可更新性：需要是 git 仓库 + 配置了 git 策略。
+  // 启动器边界：非 git 仓库一律手动更新——绝不为"让它可更新"而 git init 项目目录。
+  const updatable = git.isRepo && (project.update?.strategy ?? 'none') !== 'none';
 
   // 启动脚本存在性：缺脚本时启动必然失败，提前暴露比让用户点了报错好
   let startable = project.start?.command !== null && project.start?.command !== undefined;

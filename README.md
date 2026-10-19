@@ -19,12 +19,14 @@ node src/index.js
 | 状态总览 | 每 3 秒刷新，显示运行状态、端口、PID、运行时长 |
 | 启动 / 停止 / 重启 | 复用项目自带启动脚本，保留各项目原有的环境处理逻辑 |
 | **一键更新** | 工作区有未提交改动也无需手动处理——自动 stash、更新、恢复 |
-| **GitHub 下载项目** | zip 解压得到的非 git 目录也能更新（`git-clone` 策略，首次自动建库关联上游） |
 | 批量更新 | 顺序执行，逐个回显结果 |
 | 落后提示 | 显示远程领先的提交数（`↓N`），有更新时按钮带计数 |
 | 中英文切换 | 顶栏语言按钮，选择记住在本地 |
 | 明暗主题 | 顶栏主题按钮，选择记住在本地 |
 | 日志 | 每个项目独立日志，看板可全屏查看最近 500 行；时间戳为北京时间（带 +08:00 偏移） |
+
+> **启动器边界**：本工具对被管项目只做三件事——看状态、启停、按你的指令拉更新。
+> 绝不改动项目本身：不在项目目录里 `git init`、不新增文件、不改配置。非 git 仓库一律手动更新。
 
 ## 版本：Windows / 跨平台
 
@@ -48,9 +50,9 @@ node src/index.js
 | LibreTV | Next.js 15 | 8090 | fork 同步上游 |
 | githubPopularProjects | Next.js 15 | 3000 | git pull |
 | AutoTestHub | FastAPI + Vue | 8686 / 5173 | git pull |
-| qoder2api-hub | Python 代理 | 8790 | git-clone（原 zip 解压） |
+| qoder2api-hub | Python 代理 | 8790 | 手动（非 git 仓库） |
 | wb2api-panel | Go 二进制 | 7863 | 手动（暂不纳入测试） |
-| REA | TS monorepo / CLI | — | git-clone（原 zip 解压） |
+| REA | TS monorepo / CLI | — | 手动（目录现为 git 仓库，确认后可改为 git） |
 | 2048 | pygame 桌面 | — | git pull |
 | Grimoire-Echoes | Godot 4 | — | git pull |
 
@@ -80,15 +82,6 @@ git stash push --include-untracked     ← 连未跟踪文件一起保护
 2. **用 `try/finally` 兜住所有异常路径**，且用 `stashConsumed` 标志防止误弹用户自己的 stash。
 
 `--include-untracked` 很关键：最常见的未提交改动就是新增的未跟踪文件，不含它这些文件会挡住更新。
-
-### git-clone：zip 解压项目的更新
-
-本地不是 git 仓库但有上游地址时：
-
-1. 建一个**空**仓库（刻意不提交本地文件——否则它们变成已跟踪状态，会被 `reset --hard` 清掉）
-2. 配置 remote 指向上游
-3. 对齐到上游（空仓库分支是 unborn 的，没有 `origin/<branch>` 引用，自动退到 `FETCH_HEAD`）
-4. 本地未跟踪文件原样保留，之后就走正常的 `ff-only` 流程
 
 ## 目录结构
 
@@ -132,11 +125,10 @@ data/
   "startupTimeoutMs": 300000,
   "startupMatch": "Ready in|Local:",
   "update": {
-    "strategy": "git-fork",              // git | git-fork | git-clone | none
+    "strategy": "git-fork",              // git | git-fork | none
     "remote": "origin",
     "branch": "main",
-    "upstream": "upstream",
-    "repoUrl": "https://github.com/xxx/yyy.git"   // 仅 git-clone 需要
+    "upstream": "upstream"
   }
 }
 ```
@@ -160,10 +152,10 @@ node --test "test/*.test.js"
 - `netstat.test.js` — 端口解析边界（前缀误匹配、IPv4/IPv6 去重、非 LISTENING）
 - `platform.test.js` — 三个平台的输出格式解析一致性
 - `registry.test.js` — 配置校验
-- `git.test.js` — 真实 git 仓库：fast-forward、自动 stash 与回滚、冲突 abort、git-clone
+- `git.test.js` — 真实 git 仓库：fast-forward、自动 stash 与回滚、冲突 abort
 - `dashboard.test.js` — 看板渲染逻辑、XSS 转义、i18n 键对齐、主题变量
 
-**wb2api-panel 暂不纳入测试**（按项目约定，最终完成后再纳入）。
+wb2api-panel 已纳入启停测试范围（2026-10-19 实机验证通过）。
 
 ## 开机自启（可选）
 
@@ -176,7 +168,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-startup.ps1
 ## 已知限制
 
 - LibreTV / Grimoire-Echoes 的本地未跟踪文件现在不再挡住更新（自动 stash），但**仍会显示为"有改动"**
-- wb2api-panel 更新策略为 `none`，待测试通过后可配 `git-clone`
+- wb2api-panel 为二进制分发、非 git 仓库，更新为手动；如需一键更新，自行 `git clone` 上游后把策略改为 `git`
 - 启动耗时：Next.js 项目首次启动可能需数分钟（含编译），超时已设为 300 秒
 - 跨平台运行时，`registry.json` 里的启动命令需按平台调整（`.bat` ↔ `.sh`）
 

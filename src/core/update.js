@@ -1,12 +1,16 @@
 /**
- * 更新逻辑：git pull / fork 同步 / 克隆式更新。
+ * 更新逻辑：git pull / fork 同步。
+ *
+ * 本管理器的定位是**启动器**：对被管项目只做"看状态、启停、按用户指令拉更新"，
+ * 绝不改动项目本身——不在项目目录里 git init、不新增文件、不改配置。
+ * 因此更新只对"本来就是 git 仓库"的项目生效；非仓库项目一律标记为手动更新。
  *
  * 三条铁律：
  *   1. 只允许 fast-forward（--ff-only）——本地有未推送提交时明确失败并报告，
  *      不悄悄生成 merge commit。用户看到提示后自己决定，比自动 merge 安全。
- *   2. 脏工作区自动 stash 而不是拒绝——从 GitHub 下载的项目几乎都带未提交改动，
- *      一律拒绝会让"点一下更新"变成不可能。暂存后更新，成功后恢复，任何失败
- *      路径都回滚，工作区必定回到原状（绝不丢用户的改动）。
+ *   2. 脏工作区自动 stash 而不是拒绝——GitHub 项目几乎都带未提交改动
+ *      （编辑器配置、本地脚本、构建产物），一律拒绝会让"点一下更新"变成不可能。
+ *      暂存后更新，成功后恢复，任何失败路径都回滚，工作区必定回到原状。
  *   3. 冲突立即 abort——绝不自动解冲突，绝不留半合并状态。
  */
 
@@ -18,12 +22,8 @@ import {
   fetch,
   pullFastForwardOnly,
   mergeUpstream,
-  resetToRemote,
   stashPush,
   stashPop,
-  initEmptyRepo,
-  hasCommits,
-  ensureRemote,
 } from './git.js';
 import { logger } from '../util/logger.js';
 
@@ -34,6 +34,7 @@ import { logger } from '../util/logger.js';
  * @property {string} [output]
  * @property {boolean} [alreadyUpToDate]
  * @property {boolean} [stashed] 是否自动暂存过本地改动
+ * @property {boolean} [stashRestored] 暂存的改动是否已恢复
  */
 
 /**
@@ -52,42 +53,14 @@ export async function updateProject(project) {
     };
   }
 
-  const remote = project.update.remote ?? 'origin';
-  const branch = project.update.branch ?? 'main';
-  const repoUrl = project.update.repoUrl;
-
-  // —— git-clone：本地不是仓库，但有上游地址 ——
-  // 典型场景：从 GitHub 下载 zip 解压使用。本地有凭据/配置不想删。
-  // 做法：建一个空仓库 → 配好 remote → 走下面的自动 stash + 对齐上游流程。
-  // 刻意不把本地文件做成首个提交：那样它们会变成已跟踪状态，
-  // 之后的 reset --hard 会直接删掉它们。保持未跟踪才能被 stash 保护。
-  if (strategy === 'git-clone') {
-    if (!repoUrl) {
-      return { ok: false, message: '配置了 git-clone 但缺少 update.repoUrl（上游仓库地址）' };
-    }
-    if (!(await isGitRepo(project.path))) {
-      logger.info('非 git 仓库，转为克隆式更新：建立空仓库', { id: project.id });
-      const initR = await initEmptyRepo(project.path, branch);
-      if (!initR.ok) {
-        return { ok: false, message: `初始化本地仓库失败：${initR.error}` };
-      }
-    }
-    const r = await ensureRemote(project.path, remote, repoUrl);
-    if (!r.ok) {
-      return { ok: false, message: `配置 remote 失败：${r.error}` };
-    }
-    // 建库后按普通 git 流程继续，但标记 allowUnrelated：
-    // 空仓库与上游没有共同祖先，ff-only 不可能成功，需走对齐分支。
-    return updateProject({
-      ...project,
-      update: { ...project.update, strategy: 'git', allowUnrelated: true },
-    });
-  }
-
   // —— 前置检查 1：确实是 git 仓库 ——
+  // 启动器边界：绝不为"让它可更新"而把非仓库目录变成仓库（git init 属于改动项目本身）。
   if (!(await isGitRepo(project.path))) {
     return { ok: false, message: '不是 git 仓库' };
   }
+
+  const remote = project.update.remote ?? 'origin';
+  const branch = project.update.branch ?? 'main';
 
   // —— 前置检查 2：不在 detached HEAD ——
   const current = await currentBranch(project.path);
@@ -106,7 +79,7 @@ export async function updateProject(project) {
     };
   }
 
-  // —— 前置检查 5：fork 同步需要 upstream 已配置 ——
+  // —— 前置检查 4：remote 已配置 ——
   // 注意：所有可能在 stash 之前失败的检查都必须排在 stash 之前。
   // 一旦 stash 了工作区，任何提前 return 都得先把 stash 弹回去，
   // 否则用户的未提交改动会凭空"消失"（藏在 stash 里），这是不可接受的数据安全问题。
@@ -128,42 +101,13 @@ export async function updateProject(project) {
   }
 
   // —— 工作区处理：自动 stash ——
-  // 从 GitHub 下载的项目几乎都带未提交改动（编辑器配置、本地脚本、构建产物），
-  // 一律拒绝会让"点一下更新"变成不可能。所以改为自动暂存：
-  //   更新前暂存 → 更新成功后恢复 → 任何失败路径都回滚恢复。
-  // 用户零操作就能更新，且任何一步出错工作区都回到原状。
+  // 暂存 → 更新 → 恢复；任何失败路径都回滚。stash pop 成功后不留任何痕迹，
+  // 失败时改动仍安全保留在 stash 里，绝不丢。
   let stashed = false;
   /** 暂存的改动是否已被消费（成功恢复或已回滚）。finally 靠它避免重复弹用户的 stash */
   let stashConsumed = false;
 
-  const dirty = await isDirty(project.path);
-  const allowUnrelated = project.update.allowUnrelated ?? false;
-
-  // 空仓库（git-clone 刚建、还没有任何 commit）不能 stash：
-  // git 会报 "You do not have the initial commit yet"。
-  // 此时本地文件必然全是未跟踪的，直接对齐上游即可——reset --hard 不碰未跟踪文件。
-  // unborn 分支上没有 origin/<branch> 引用，必须先 fetch，失败再退到 FETCH_HEAD。
-  if (dirty && allowUnrelated && !(await hasCommits(project.path))) {
-    const fetched = await fetch(project.path, remote);
-    if (!fetched.ok) {
-      return { ok: false, message: `git fetch 失败：${fetched.stderr || '未知错误'}` };
-    }
-
-    const aligned = await resetToRemote(project.path, remote, branch);
-    if (!aligned.ok) {
-      return { ok: false, message: `与上游汇合失败：${aligned.error}`, output: aligned.output };
-    }
-
-    return {
-      ok: true,
-      message: '已与上游汇合（本地未跟踪文件原样保留）',
-      output: aligned.output,
-      alreadyUpToDate: false,
-      stashed: false,
-    };
-  }
-
-  if (dirty) {
+  if (await isDirty(project.path)) {
     const push = await stashPush(project.path);
     if (!push.ok) {
       return {
@@ -203,29 +147,6 @@ export async function updateProject(project) {
         message: merged.alreadyUpToDate ? '已是最新（与上游无差异）' : '已同步上游更新',
         output: merged.output,
         alreadyUpToDate: merged.alreadyUpToDate,
-        stashed,
-        stashRestored: restored,
-      };
-    }
-
-    // 允许无共同历史时（git-clone 已入库但 upstream 无共同祖先）：
-    // ff-only 必然失败，直接对齐到上游最新。本地改动已在之前的 stash 里，对齐后恢复。
-    if (allowUnrelated) {
-      const aligned = await resetToRemote(project.path, remote, branch);
-      if (!aligned.ok) {
-        return {
-          ok: false,
-          message: `与上游汇合失败：${aligned.error}`,
-          output: aligned.output,
-        };
-      }
-      const restored = await restoreStash(project.path, stashed);
-      stashConsumed = true;
-      return {
-        ok: true,
-        message: stashed ? '已与上游汇合（本地改动已恢复）' : '已与上游汇合',
-        output: aligned.output,
-        alreadyUpToDate: false,
         stashed,
         stashRestored: restored,
       };
