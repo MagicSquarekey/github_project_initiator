@@ -54,6 +54,8 @@ node src/index.js
 | 2048 | pygame 桌面 | — | git pull |
 | Grimoire-Echoes | Godot 4 | — | git pull |
 
+共 8 个条目。AutoTestHub 是单条目——`start.vbs` 一次调用同时拉起 backend(8686) 与 frontend(5173)，停止同时回收两个端口；卡片上会逐个显示子服务就绪状态。
+
 ## 一键更新是如何保证不丢改动的
 
 从 GitHub 下载的项目几乎都带未提交改动（编辑器配置、本地脚本、构建产物），

@@ -72,9 +72,11 @@ header {
   backdrop-filter: blur(10px);
   position: sticky; top: 0; z-index: 20;
 }
-.brand { font-size: 15px; font-weight: 650; letter-spacing: .2px; white-space: nowrap; }
+.brand { font-size: 15px; font-weight: 650; letter-spacing: .2px; white-space: nowrap; display: inline-flex; align-items: center; gap: 8px; }
 .brand b { color: var(--accent); font-weight: 700; }
-.brand .ver { color: var(--text-faint); font-size: 11px; font-weight: 400; margin-left: 6px; }
+.brand .ver { color: var(--text-faint); font-size: 11px; font-weight: 400; margin-left: 2px; }
+.brand-icon { width: 20px; height: 20px; color: var(--text); flex: none; }
+:root[data-theme="light"] .brand-icon { color: #1a1f2b; }
 
 .stat { display: flex; align-items: center; gap: 6px; color: var(--text-dim); font-size: 13px; white-space: nowrap; }
 .stat b { color: var(--text); font-variant-numeric: tabular-nums; }
@@ -162,6 +164,8 @@ main { padding: 20px 22px 56px; max-width: 1440px; margin: 0 auto; }
 .meta .warn   { color: var(--amber); }
 .meta .behind { color: var(--blue); font-weight: 650; font-variant-numeric: tabular-nums; }
 .meta .mono   { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+/* 子服务状态点：meta 行里也要有确定尺寸，不能依赖卡片上下文 */
+.meta .led { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; vertical-align: 0; }
 
 .error {
   font-size: 12px; color: var(--red);
@@ -225,7 +229,12 @@ main { padding: 20px 22px 56px; max-width: 1440px; margin: 0 auto; }
 <body>
 
 <header>
-  <div class="brand"><b>github_project_initiator</b><span class="ver" id="ver"></span></div>
+  <div class="brand">
+    <svg class="brand-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 2C6.48 2 2 6.48 2 12c0 4.42 2.87 8.17 6.84 9.5.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.89 1.53 2.34 1.09 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.56-1.11-4.56-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02.8-.22 1.65-.33 2.5-.33s1.7.11 2.5.33c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.94.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A9.99 9.99 0 0 0 22 12c0-5.52-4.48-10-10-10z"/>
+    </svg>
+    <b id="brand-name">github项目启动器</b><span class="ver" id="ver"></span>
+  </div>
   <div class="spacer"></div>
   <div class="stat">
     <span class="led-dot"></span>
@@ -268,7 +277,8 @@ main { padding: 20px 22px 56px; max-width: 1440px; margin: 0 auto; }
    ============================================================ */
 const I18N = {
   zh: {
-    title: 'github_project_initiator · 项目管理',
+    title: 'github项目启动器 · 项目管理',
+    brand: 'github项目启动器',
     running: '运行', startAll: '全部启动', updateAll: '批量更新', stopAll: '全部停止',
     close: '关闭', empty: '没有项目。编辑 data/registry.json 添加。',
     runningStatus: '运行中', stoppedStatus: '未运行', starting: '启动中…', stopping: '停止中…',
@@ -296,6 +306,7 @@ const I18N = {
   },
   en: {
     title: 'github_project_initiator · Project Manager',
+    brand: 'github_project_initiator',
     running: 'Running', startAll: 'Start All', updateAll: 'Update All', stopAll: 'Stop All',
     close: 'Close', empty: 'No projects. Edit data/registry.json to add some.',
     runningStatus: 'Running', stoppedStatus: 'Stopped', starting: 'Starting…', stopping: 'Stopping…',
@@ -339,8 +350,11 @@ function applyLang() {
     const key = el.dataset.i18n;
     if (typeof I18N[lang][key] === 'string') el.textContent = I18N[lang][key];
   });
+  // 品牌名与页面标题也随语言切换
+  const brand = document.getElementById('brand-name');
+  if (brand) brand.textContent = I18N[lang].brand;
+  document.title = I18N[lang].title;
   document.getElementById('lang-label').textContent = lang === 'zh' ? 'EN' : '中文';
-  document.title = t('title');
   localStorage.setItem('gpi-lang', lang);
   render_now();
 }
@@ -414,6 +428,16 @@ function metaHtml(p) {
     parts.push(`<span>${esc(t('cliTool'))}</span>`);
   } else if (p.kind === 'desktop-app') {
     parts.push(`<span>${esc(t('desktopApp'))}</span>`);
+  }
+
+  // 多服务项目：逐个列出子服务端口与就绪状态（如 AutoTestHub 的 backend/frontend）
+  if (p.services?.length) {
+    for (const s of p.services) {
+      const up = (p.openPorts ?? []).includes(s.port);
+      const dot = up ? '<span class="led on"></span>' : '<span class="led off"></span>';
+      const link = s.url ? `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.label)}:${s.port}</a>` : `${esc(s.label)}:${s.port}`;
+      parts.push(`${dot}${link}`);
+    }
   }
 
   // 运行时信息

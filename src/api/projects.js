@@ -62,6 +62,8 @@ export async function describeProject(project) {
 
     ports,
     url: project.url ?? null,
+    // 多服务项目（如 AutoTestHub 的 backend+frontend）的子服务清单，看板用来展示
+    services: Array.isArray(project.services) ? project.services : null,
     uptimeSec: rt.startedAt && probe.running ? Math.floor((Date.now() - rt.startedAt) / 1000) : null,
 
     startable,

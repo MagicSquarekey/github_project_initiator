@@ -40,7 +40,10 @@ function mkEl(tag) {
     remove() {},
     closest() { return null; },
     // 看板在 grid 与按钮上注册了事件委托，测试环境收起来即可
-    addEventListener() {},
+    // 但要能被 .click() 触发，否则按钮行为无法验证
+    _handlers: {},
+    addEventListener(type, handler) { this._handlers[type] = handler; },
+    click() { this._handlers.click?.(); },
     removeEventListener() {},
   };
   return el;
@@ -230,6 +233,100 @@ test('运行时长格式化', () => {
   const { render, grid } = loadDashboard();
   render([proj({ id: 'a', name: 'A', running: true, uptimeSec: 3725 })]);
   assert.match(grid.children.join(''), /1h 2m/);
+});
+
+test('品牌名随语言切换（github项目启动器 / github_project_initiator）', () => {
+  const html = fs.readFileSync(HTML_PATH, 'utf8');
+  const code = html.match(/<script>([\s\S]*?)<\/script>/)[1];
+
+  const grid = mkEl('div');
+  const brand = mkEl('div');
+  brand.textContent = 'github项目启动器';
+  const btnLang = mkEl('div');
+  const els = { grid, 'brand-name': brand, 'btn-lang': btnLang };
+  const store = new Map();
+
+  const doc = {
+    getElementById: (id) => (els[id] ??= mkEl('div')),
+    querySelectorAll: () => [],
+    documentElement: { dataset: {}, lang: '' },
+    addEventListener: () => {},
+    title: '',
+  };
+
+  const sandbox = {
+    document: doc,
+    localStorage: {
+      getItem: (k) => (store.has(k) ? store.get(k) : null),
+      setItem: (k, v) => store.set(k, String(v)),
+      removeItem: (k) => store.delete(k),
+    },
+    navigator: { language: 'zh-CN' },
+    CSS: { escape: (s) => String(s).replace(/"/g, '\\"') },
+    fetch: async () => ({ json: async () => ({ projects: [] }) }),
+    setInterval: () => {},
+    clearTimeout: () => {},
+    setTimeout: () => 0,
+    confirm: () => false,
+    console,
+  };
+
+  const body = code.replace(/refresh\(\);\s*setInterval\(refresh, 3000\);/, '');
+  const fn = new Function(...Object.keys(sandbox), body);
+  fn(...Object.keys(sandbox).map((k) => sandbox[k]));
+
+  // 初始（系统语言 zh-CN）→ 中文
+  assert.equal(brand.textContent, 'github项目启动器');
+  assert.match(doc.title, /github项目启动器/);
+
+  // 点击切英文
+  btnLang.click();
+  assert.equal(brand.textContent, 'github_project_initiator', '英文品牌名');
+  assert.match(doc.title, /github_project_initiator · Project Manager/);
+
+  // 再点回中文
+  btnLang.click();
+  assert.equal(brand.textContent, 'github项目启动器');
+});
+
+test('品牌图标存在', () => {
+  const html = fs.readFileSync(HTML_PATH, 'utf8');
+  assert.match(html, /class="brand-icon"/);
+  assert.match(html, /id="brand-name"/);
+  // 内联 SVG，不依赖外部图标库
+  assert.match(html, /<svg class="brand-icon"[^>]*>.*<\/svg>/s);
+});
+
+test('多服务项目逐个显示子服务与就绪状态', () => {
+  const { render, grid } = loadDashboard();
+  render([proj({
+    id: 'ath', name: 'AutoTestHub', running: true, runningVia: 'port', openPorts: [8686, 5173],
+    url: 'http://127.0.0.1:5173',
+    services: [
+      { label: 'backend', port: 8686, url: 'http://127.0.0.1:8686' },
+      { label: 'frontend', port: 5173, url: 'http://127.0.0.1:5173' },
+    ],
+  })]);
+  const h = grid.children.join('');
+  assert.match(h, /backend:8686/);
+  assert.match(h, /frontend:5173/);
+  // 两个端口都在跑 → 状态行 1 个 + 子服务 2 个 = 3 个就绪点
+  assert.equal((h.match(/led on/g) || []).length, 3, '两个子服务都应显示为就绪');
+});
+
+test('多服务项目部分端口未起时只点亮已起的', () => {
+  const { render, grid } = loadDashboard();
+  render([proj({
+    id: 'ath', name: 'AutoTestHub', running: true, runningVia: 'port', openPorts: [5173],
+    services: [
+      { label: 'backend', port: 8686, url: 'http://127.0.0.1:8686' },
+      { label: 'frontend', port: 5173, url: 'http://127.0.0.1:5173' },
+    ],
+  })]);
+  const h = grid.children.join('');
+  // 状态行亮（项目在跑）+ frontend 亮 = 2；backend 未起 = 1 个 off
+  assert.equal((h.match(/led on/g) || []).length, 2, '只有 5173 就绪');
+  assert.equal((h.match(/led off/g) || []).length, 1, '8686 应显示未就绪');
 });
 
 test('i18n：中英文案都存在且键对齐', () => {
