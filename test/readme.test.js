@@ -26,9 +26,47 @@ test('30 种语言的 README 都存在', () => {
 test('每份 README 都包含完整语言切换器', () => {
   for (const [code, file] of LANGS) {
     const text = fs.readFileSync(path.join(ROOT, file), 'utf8');
-    for (const [, otherFile] of LANGS) {
-      if (otherFile === file) continue;
-      assert.ok(text.includes(`](${otherFile})`), `${code} 缺少指向 ${otherFile} 的链接`);
+    const block = text.match(/<details>([\s\S]*?)<\/details>/)?.[1] ?? '';
+    assert.ok(block, `${code} 缺少语言切换器`);
+
+    // 30 种语言中，除当前语言外都应是链接
+    const linkCount = (block.match(/\]\(/g) ?? []).length;
+    assert.equal(linkCount, LANGS.length - 1, `${code} 的切换器链接数不对`);
+
+    // 当前语言加粗且不带链接
+    assert.ok(block.includes(`**${tName(code)}**`), `${code} 未高亮当前语言`);
+  }
+});
+
+/**
+ * 取某语言的本地名称（从翻译源读取，避免测试里再维护一份）。
+ *
+ * @param {string} code
+ * @returns {string}
+ */
+function tName(code) {
+  return loadTranslations()[code].name;
+}
+
+test('根目录只保留一个 README.md，语言文件收在 docs/i18n', () => {
+  const rootReadmes = fs
+    .readdirSync(ROOT)
+    .filter((f) => /^README\..+\.md$/.test(f));
+  assert.deepEqual(rootReadmes, [], `根目录不应再有平铺的语言文件：${rootReadmes.join(', ')}`);
+
+  const nested = fs.readdirSync(path.join(ROOT, 'docs', 'i18n')).filter((f) => /^README\..+\.md$/.test(f));
+  assert.equal(nested.length, LANGS.length - 1, 'docs/i18n 下的语言文件数量不对');
+});
+
+test('所有相对链接都能解析到真实文件', () => {
+  for (const [, file] of LANGS) {
+    const abs = path.join(ROOT, file);
+    const text = fs.readFileSync(abs, 'utf8');
+    const dir = path.dirname(abs);
+    for (const m of text.matchAll(/\]\(([^)]+)\)/g)) {
+      const href = m[1];
+      if (/^https?:/.test(href) || href.startsWith('#')) continue;
+      assert.ok(fs.existsSync(path.resolve(dir, href)), `${file} 断链 → ${href}`);
     }
   }
 });
