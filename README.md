@@ -2,7 +2,7 @@
 
 Desktop 上散落的 GitHub 项目，一个统一入口：看得见状态、点得动启停、一键更新。
 
-一个本地常驻的 Node 服务 + 单页看板，把 8 个异构项目（Next.js / FastAPI / Python 代理 / Go 二进制 / Godot / pygame）纳入同一张表管理。**零第三方依赖**。
+一个本地常驻的 Node 服务 + 单页看板，把 9 个异构项目（Next.js / FastAPI / Python 代理 / Go 二进制 / Godot / pygame / 常驻记忆服务）纳入同一张表管理。**零第三方依赖**。
 
 ## 快速开始
 
@@ -55,8 +55,9 @@ node src/index.js
 | REA | TS monorepo / CLI | — | 手动（目录现为 git 仓库，确认后可改为 git） |
 | 2048 | pygame 桌面 | — | git pull |
 | Grimoire-Echoes | Godot 4 | — | git pull |
+| OpenViking | Python 常驻服务 | 1933 | 手动（pip 安装，非 git） |
 
-共 8 个条目。AutoTestHub 是单条目——`start.vbs` 一次调用同时拉起 backend(8686) 与 frontend(5173)，停止同时回收两个端口；卡片上会逐个显示子服务就绪状态。
+共 9 个条目。AutoTestHub 是单条目——`start.vbs` 一次调用同时拉起 backend(8686) 与 frontend(5173)，停止同时回收两个端口；卡片上会逐个显示子服务就绪状态。
 
 ## 一键更新是如何保证不丢改动的
 
