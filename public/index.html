@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>github_project_initiator · 项目管理</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --card: #171a21;
+    --card-hover: #1c2029;
+    --border: #262b36;
+    --text: #e6e9ef;
+    --text-dim: #8b93a7;
+    --text-faint: #5c6478;
+    --green: #3fb950;
+    --red: #f85149;
+    --amber: #d29922;
+    --blue: #58a6ff;
+    --accent: #7c6cf0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: 14px/1.5 -apple-system, "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+    min-height: 100vh;
+  }
+  header {
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    padding: 18px 24px; border-bottom: 1px solid var(--border);
+    background: var(--card); position: sticky; top: 0; z-index: 10;
+  }
+  .brand { font-size: 16px; font-weight: 600; letter-spacing: .2px; }
+  .brand span { color: var(--accent); }
+  .spacer { flex: 1; }
+  .stat { color: var(--text-dim); font-size: 13px; }
+  .stat b { color: var(--text); }
+  .stat .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: 1px; }
+
+  button {
+    font: inherit; color: var(--text); background: #21252e;
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 6px 12px; cursor: pointer; transition: .15s;
+  }
+  button:hover:not(:disabled) { background: #2a2f3a; border-color: #39404f; }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.primary:hover:not(:disabled) { background: #8f82f5; }
+  button.danger:hover:not(:disabled) { background: #3a1f22; border-color: var(--red); color: var(--red); }
+
+  main { padding: 20px 24px 48px; max-width: 1500px; margin: 0 auto; }
+
+  .grid {
+    display: grid; gap: 14px;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 10px;
+    transition: border-color .15s;
+  }
+  .card:hover { border-color: #333a48; }
+  .card.running { border-left: 3px solid var(--green); }
+  .card.stopped { border-left: 3px solid #333a48; }
+  .card.busy { border-left: 3px solid var(--amber); }
+  .card.disabled { opacity: .55; }
+
+  .card-head { display: flex; align-items: baseline; gap: 8px; }
+  .card-head .name { font-weight: 600; font-size: 15px; }
+  .card-head .kind { font-size: 11px; color: var(--text-faint); margin-left: auto; white-space: nowrap; }
+
+  .status { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-dim); }
+  .led { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .led.on { background: var(--green); box-shadow: 0 0 7px var(--green); }
+  .led.off { background: #3d4453; }
+  .led.busy { background: var(--amber); animation: pulse 1s infinite; }
+  @keyframes pulse { 50% { opacity: .35; } }
+
+  .meta { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--text-dim); }
+  .meta a { color: var(--blue); text-decoration: none; }
+  .meta a:hover { text-decoration: underline; }
+  .meta .warn { color: var(--amber); }
+  .meta .behind { color: var(--blue); font-weight: 600; }
+
+  .actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; }
+  .actions button { padding: 5px 10px; font-size: 12px; }
+
+  .error {
+    font-size: 12px; color: var(--red); background: #2a1618;
+    border: 1px solid #4a2225; border-radius: 6px; padding: 6px 9px;
+  }
+
+  /* 日志抽屉 */
+  .logs {
+    display: none; border-top: 1px solid var(--border); padding-top: 10px;
+    max-height: 260px; overflow: auto;
+  }
+  .logs.open { display: block; }
+  .logs pre {
+    font: 11px/1.55 ui-monospace, "Cascadia Mono", Consolas, monospace;
+    color: var(--text-dim); white-space: pre-wrap; word-break: break-all;
+  }
+
+  /* 全局操作结果浮条 */
+  #toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 16px; font-size: 13px; max-width: 620px;
+    box-shadow: 0 8px 28px rgba(0,0,0,.5); display: none; z-index: 100;
+  }
+  #toast.show { display: block; }
+  #toast.ok { border-color: var(--green); }
+  #toast.err { border-color: var(--red); }
+
+  .hint { color: var(--text-faint); font-size: 12px; padding: 24px 0; text-align: center; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">github<span>_project_initiator</span></div>
+  <div class="spacer"></div>
+  <div class="stat"><span class="dot" style="background:var(--green)"></span>运行 <b id="cnt-run">–</b> / <b id="cnt-total">–</b></div>
+  <button id="btn-start-all">全部启动</button>
+  <button id="btn-update-all" class="primary">批量更新</button>
+  <button id="btn-stop-all" class="danger">全部停止</button>
+</header>
+
+<main>
+  <div class="grid" id="grid"></div>
+  <div class="hint" id="hint" style="display:none">没有项目。编辑 data/registry.json 添加。</div>
+</main>
+
+<div id="toast"></div>
+
+<script>
+const API = '';
+const grid = document.getElementById('grid');
+const toast = document.getElementById('toast');
+
+/** 上一次的项目数据快照，用于增量渲染。同时缓存完整项目对象供 busy 态重绘 */
+let snapshot = new Map();
+/** 每个项目最后一次操作结果（用于卡片上显示错误） */
+let errors = new Map();
+/** 正在处理中的项目 id 集合 */
+let busy = new Set();
+
+/* ---------- 工具 ---------- */
+
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c =>
+    ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+function fmtUptime(sec) {
+  if (sec == null) return '';
+  if (sec < 60) return `${sec}s`;
+  if (sec < 3600) return `${Math.floor(sec/60)}m`;
+  if (sec < 86400) return `${Math.floor(sec/3600)}h${Math.floor((sec%3600)/60)}m`;
+  return `${Math.floor(sec/86400)}d`;
+}
+
+function showToast(msg, ok = true, ms = 4000) {
+  toast.textContent = msg;
+  toast.className = `show ${ok ? 'ok' : 'err'}`;
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => (toast.className = ''), ms);
+}
+
+/* ---------- 渲染 ---------- */
+
+function statusText(p) {
+  if (busy.has(p.id)) return '处理中…';
+  if (p.phase === 'starting') return '启动中…';
+  if (p.phase === 'stopping') return '停止中…';
+  if (p.phase === 'failed') return '启动失败';
+  return p.running ? '运行中' : '未运行';
+}
+
+function ledClass(p) {
+  if (busy.has(p.id) || p.phase === 'starting' || p.phase === 'stopping') return 'busy';
+  return p.running ? 'on' : 'off';
+}
+
+function metaHtml(p) {
+  const parts = [];
+
+  if (p.url) {
+    parts.push(`<a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.url.replace(/^https?:\/\//,''))}</a>`);
+  } else if (p.kind === 'cli-tool') {
+    parts.push('CLI 工具 · 无启停');
+  } else if (p.kind === 'desktop-app') {
+    parts.push('桌面程序');
+  }
+
+  if (p.running && p.pids.length) {
+    parts.push(`PID ${p.pids.join(', ')}`);
+  }
+  if (p.running && p.uptimeSec != null) {
+    parts.push(fmtUptime(p.uptimeSec));
+  }
+  if (p.runningVia === 'procname') {
+    parts.push('<span class="warn">按进程名探测</span>');
+  }
+
+  if (p.git.isRepo) {
+    const g = [];
+    g.push(`<span title="当前分支">⎇ ${esc(p.git.branch ?? '?')}</span>`);
+    if (p.git.dirty) g.push('<span class="warn" title="工作区有未提交改动，更新会被拒绝">● 有改动</span>');
+    if (p.git.behind > 0) g.push(`<span class="behind" title="远程领先的提交数">↓${p.git.behind}</span>`);
+    if (p.git.ahead > 0) g.push(`<span title="本地领先的提交数">↑${p.git.ahead}</span>`);
+    parts.push(g.join(' '));
+  } else {
+    parts.push('<span class="warn" title="非 git 仓库或未纳入管理">非 git</span>');
+  }
+
+  return parts.length ? `<div class="meta">${parts.join('<span style="color:var(--text-faint)">·</span>')}</div>` : '';
+}
+
+function actionsHtml(p) {
+  const isBusy = busy.has(p.id);
+  const b = [];
+  const dis = isBusy ? 'disabled' : '';
+
+  if (p.running) {
+    b.push(`<button data-act="stop" data-id="${esc(p.id)}" ${dis}>停止</button>`);
+    b.push(`<button data-act="restart" data-id="${esc(p.id)}" ${dis}>重启</button>`);
+  } else if (p.startable) {
+    b.push(`<button data-act="start" data-id="${esc(p.id)}" class="primary" ${dis}>启动</button>`);
+  }
+
+  if (p.updatable) {
+    const label = p.git.behind > 0 ? `更新 ↓${p.git.behind}` : '更新';
+    b.push(`<button data-act="update" data-id="${esc(p.id)}" ${dis}>${label}</button>`);
+  } else {
+    b.push(`<button data-act="update" data-id="${esc(p.id)}" ${dis} title="该项目未纳入 git 管理">手动更新</button>`);
+  }
+
+  b.push(`<button data-act="logs" data-id="${esc(p.id)}">日志</button>`);
+  return `<div class="actions">${b.join('')}</div>`;
+}
+
+function cardHtml(p) {
+  const cls = [
+    p.running ? 'running' : 'stopped',
+    busy.has(p.id) || p.phase === 'starting' || p.phase === 'stopping' ? 'busy' : '',
+    p.enabled === false ? 'disabled' : '',
+  ].filter(Boolean).join(' ');
+
+  const err = errors.get(p.id);
+  const errHtml = err ? `<div class="error">${esc(err)}</div>` : '';
+
+  return `
+    <div class="card ${cls}" data-card="${esc(p.id)}">
+      <div class="card-head">
+        <span class="name">${esc(p.name)}</span>
+        <span class="kind">${esc(p.kind)}</span>
+      </div>
+      <div class="status"><span class="led ${ledClass(p)}"></span>${esc(statusText(p))}</div>
+      ${metaHtml(p)}
+      ${errHtml}
+      ${actionsHtml(p)}
+      <div class="logs" data-logs="${esc(p.id)}"><pre>加载中…</pre></div>
+    </div>`;
+}
+
+/**
+ * 增量渲染：只重建内容变化过的卡片。
+ *
+ * 为什么不用整页重绘：看板每 3 秒轮询一次，整页重绘会让按钮在点击瞬间
+ * 被替换掉，导致"点了没反应"的错觉，也会中断文本选中。
+ */
+function render(projects) {
+  const seen = new Set();
+
+  for (const p of projects) {
+    seen.add(p.id);
+    const key = JSON.stringify([p, busy.has(p.id), errors.get(p.id)]);
+    const prev = snapshot.get(p.id);
+
+    if (prev?.key === key) continue;
+
+    const html = cardHtml(p);
+    const existing = grid.querySelector(`[data-card="${CSS.escape(p.id)}"]`);
+    if (existing) {
+      existing.outerHTML = html;
+    } else {
+      grid.insertAdjacentHTML('beforeend', html);
+    }
+    snapshot.set(p.id, { key, project: p });
+  }
+
+  // 移除已不存在的项目
+  for (const id of [...snapshot.keys()]) {
+    if (seen.has(id)) continue;
+    grid.querySelector(`[data-card="${CSS.escape(id)}"]`)?.remove();
+    snapshot.delete(id);
+    errors.delete(id);
+  }
+
+  const run = projects.filter(p => p.running).length;
+  document.getElementById('cnt-run').textContent = run;
+  document.getElementById('cnt-total').textContent = projects.length;
+  document.getElementById('hint').style.display = projects.length ? 'none' : 'block';
+}
+
+/* ---------- 数据 ---------- */
+
+async function refresh() {
+  try {
+    const res = await fetch(`${API}/api/projects`);
+    const data = await res.json();
+    render(data.projects ?? []);
+  } catch (err) {
+    showToast(`刷新失败：${err.message}`, false);
+  }
+}
+
+async function act(action, id) {
+  busy.add(id);
+  errors.delete(id);
+  render_now();
+  try {
+    const res = await fetch(`${API}/api/projects/${encodeURIComponent(id)}/${action}`, { method: 'POST' });
+    const data = await res.json();
+
+    if (data.ok === false) {
+      errors.set(id, data.message || data.error || '操作失败');
+      showToast(data.message || '操作失败', false);
+    } else {
+      showToast(data.message || '完成', true);
+    }
+  } catch (err) {
+    const msg = `请求失败：${err.message}`;
+    errors.set(id, msg);
+    showToast(msg, false);
+  } finally {
+    busy.delete(id);
+    await refresh();
+  }
+}
+
+/** 不重新请求，仅用缓存的项目对象重绘（用于 busy 状态即时反馈） */
+function render_now() {
+  const projects = [...snapshot.values()].map(v => v.project).filter(Boolean);
+  if (projects.length) render(projects);
+}
+
+async function updateAll() {
+  busy.add('__all__');
+  showToast('批量更新中，请稍候…', true, 60000);
+  try {
+    const res = await fetch(`${API}/api/update-all`, { method: 'POST' });
+    const data = await res.json();
+    const results = data.results ?? [];
+    const okCount = results.filter(r => r.ok).length;
+    const failed = results.filter(r => !r.ok);
+    showToast(
+      `批量更新完成：成功 ${okCount}/${results.length}` +
+      (failed.length ? `；失败：${failed.map(f => f.name).join('、')}` : ''),
+      failed.length === 0,
+      9000
+    );
+  } catch (err) {
+    showToast(`批量更新失败：${err.message}`, false);
+  } finally {
+    busy.delete('__all__');
+    await refresh();
+  }
+}
+
+async function bulkAction(action, label, confirmMsg) {
+  if (!confirm(confirmMsg)) return;
+  const res = await fetch(`${API}/api/projects`);
+  const data = await res.json();
+  const targets = data.projects.filter(p =>
+    action === 'start' ? (p.startable && !p.running) : p.running
+  );
+  if (!targets.length) {
+    showToast('没有需要操作的项目', true);
+    return;
+  }
+  showToast(`${label}：共 ${targets.length} 个项目，逐个处理中…`, true, 120000);
+  for (const p of targets) {
+    busy.add(p.id);
+    render_now();
+    try {
+      const r = await fetch(`${API}/api/projects/${encodeURIComponent(p.id)}/${action}`, { method: 'POST' });
+      const d = await r.json();
+      if (d.ok === false) errors.set(p.id, d.message);
+    } catch (err) {
+      errors.set(p.id, err.message);
+    } finally {
+      busy.delete(p.id);
+    }
+  }
+  await refresh();
+  showToast(`${label}完成`, true);
+}
+
+async function toggleLogs(id) {
+  const box = document.querySelector(`[data-logs="${CSS.escape(id)}"]`);
+  if (!box) return;
+  const willOpen = !box.classList.contains('open');
+  box.classList.toggle('open');
+  if (!willOpen) return;
+
+  box.querySelector('pre').textContent = '加载中…';
+  try {
+    const res = await fetch(`${API}/api/projects/${encodeURIComponent(id)}/logs?lines=200`);
+    const data = await res.json();
+    const lines = data.lines ?? [];
+    box.querySelector('pre').textContent = lines.length ? lines.join('\n') : '（暂无日志）';
+    box.scrollTop = box.scrollHeight;
+  } catch (err) {
+    box.querySelector('pre').textContent = `日志加载失败：${err.message}`;
+  }
+}
+
+/* ---------- 事件 ---------- */
+
+grid.addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-act]');
+  if (!btn || btn.disabled) return;
+  const { act: action, id } = btn.dataset;
+  if (action === 'logs') toggleLogs(id);
+  else act(action, id);
+});
+
+document.getElementById('btn-update-all').addEventListener('click', updateAll);
+document.getElementById('btn-start-all').addEventListener('click', () =>
+  bulkAction('start', '全部启动', '将启动所有未运行且可启动的项目，确定？')
+);
+document.getElementById('btn-stop-all').addEventListener('click', () =>
+  bulkAction('stop', '全部停止', '将停止所有正在运行的项目（包括非本管理器启动的），确定？')
+);
+
+/* ---------- 启动 ---------- */
+
+refresh();
+setInterval(refresh, 3000);
+</script>
+
+</body>
+</html>

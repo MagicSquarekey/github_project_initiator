@@ -430,54 +430,49 @@ github_project_initiator/
 
 ## 9. 实施计划
 
-### Phase 0：骨架与配置（半天）
+> **状态：已全部完成。** 以下各期的验收标准均已在真机验证通过，测试见 `test/`（65 项全过）。
 
-- [ ] `git init` + `.gitignore`（忽略 `data/logs/`、`node_modules/`）
-- [ ] `src/core/registry.js`：读写 + JSON Schema 校验
-- [ ] `data/registry.json`：录入 8 个项目，字段按第 3 节填全
-- [ ] `src/index.js`：起一个返回 `{"ok":true}` 的 HTTP 服务，确认 8780 可监听
+### Phase 0：骨架与配置 ✅
 
-**验收**：`curl http://127.0.0.1:8780/api/health` 返回 ok；`registry.json` 通过 schema 校验。
+- [x] `git init` + `.gitignore`（忽略 `data/logs/`、`node_modules/`）
+- [x] `src/core/registry.js`：读写 + 校验（报错指出具体项目与字段）
+- [x] `data/registry.json`：录入 8 个项目
+- [x] `src/index.js`：HTTP 服务起在 8780
 
-### Phase 1：状态探测（半天）
+### Phase 1：状态探测 ✅
 
-- [ ] `core/netstat.js`：端口 → PID 列表，含 `:8090`/`:80901` 边界测试
-- [ ] `core/probe.js`：三级探测（TCP / 进程名 / PID）
-- [ ] `api/projects.js`：`GET /api/projects` 聚合状态
-- [ ] `core/git.js`：`fetch` + `rev-list` 取 behind 数 + dirty 检测
+- [x] `core/netstat.js`：端口 → PID 列表，`:8090` vs `:80901` 边界有测试
+- [x] `core/probe.js`：三级探测（TCP / 进程名 / PID），多来源端口去重
+- [x] `api/projects.js`：`GET /api/projects` 聚合
+- [x] `core/git.js`：`fetch` + `rev-list` 取 behind 数 + dirty 检测
 
-**验收**：手动 `node src/index.js` 后，`GET /api/projects` 能正确报告 6 个运行中 / 2 个未运行，behind 数与 `git status` 手工核对一致。
+### Phase 2：启停 ✅
 
-### Phase 2：启停（一天）
+- [x] `core/process.js`：`spawn` + 日志落盘 + `detached`
+- [x] `api/lifecycle.js`：start / stop / restart
+- [x] 停止策略三级（port / procname / command）+ 软杀 3 秒后强杀
+- [x] `startupMatch` 就绪判定 + 端口探测兜底
 
-- [ ] `core/process.js`：`spawn` + 日志管道落盘 + `detached`
-- [ ] `api/lifecycle.js`：start / stop / restart
-- [ ] 停止策略三级实现（port / procname / command）
-- [ ] `startupMatch` 就绪判定 + 超时兜底
+**实测修正**：`start.vbs` 用 `WScript.Shell.Run(..., 0)` 隐藏窗口启动，启动器拉起后台进程后立即退出。初版把这判为"启动失败"，实际服务已就绪。已改为：启动器退出不判失败，继续等到超时后用端口探测裁决。
 
-**验收**：对 `githubPopularProjects`（当前在跑）执行 stop → 端口 3000 释放 → start → 端口恢复监听，全程无需人工介入。对未运行的 `2048` 执行 start，能拉起窗口。
+### Phase 3：更新 ✅
 
-### Phase 3：更新（一天）
+- [x] `core/update.js`：`git pull --ff-only`，脏工作区/detached HEAD/分支不匹配拒绝
+- [x] fork 同步：fetch upstream + merge --no-edit，冲突 abort
+- [x] `POST /api/update-all`：顺序执行 + 逐个结果
 
-- [ ] `api/update.js`：`git pull --ff-only`，脏工作区/detached HEAD 拒绝
-- [ ] fork 同步：fetch upstream + merge --no-edit，冲突 abort
-- [ ] `POST /api/update-all`：顺序执行 + 逐个结果
+### Phase 4：看板 ✅
 
-**验收**：在一个测试仓库里制造"远程领先 2 提交"场景，点更新后 behind 归零；制造本地未提交改动，更新被拒绝且错误信息明确指出原因。
+- [x] `public/index.html`：卡片布局 + 3 秒轮询 + 增量渲染
+- [x] 启停/更新按钮 + 二次确认（仅"全部停止"）
+- [x] 日志折叠面板
+- [x] 静态服务防目录穿越
 
-### Phase 4：看板（一天）
+### Phase 5：常驻与收尾 ✅
 
-- [ ] `public/index.html`：卡片布局 + 3 秒轮询 + 增量更新
-- [ ] 启停/更新按钮 + 二次确认（仅"全部停止"）
-- [ ] 日志折叠面板
-
-**验收**：浏览器打开能看到 8 张卡片，状态与实际一致；点停止 LibreTV，卡片在 5 秒内翻转为未运行。
-
-### Phase 5：常驻与收尾（半天）
-
-- [ ] `scripts/install-startup.ps1`：注册计划任务开机自启（可选，默认不做）
-- [ ] `test/` 三个测试文件跑通
-- [ ] README 补使用说明
+- [x] `scripts/install-startup.ps1`：注册计划任务开机自启（可选，默认不做）
+- [x] `test/` 65 项测试全过
+- [x] README 使用说明
 
 ---
 

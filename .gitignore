@@ -1,0 +1,17 @@
+# 依赖
+node_modules/
+
+# 运行时产物
+data/logs/*.log
+data/logs/*.log.1
+data/state.json
+
+# 系统
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 日志与临时
+*.log
+npm-debug.log*
+nohup.out
