@@ -1,0 +1,270 @@
+{
+  "version": 1,
+  "projects": [
+    {
+      "id": "libretv",
+      "name": "LibreTV",
+      "path": "~/Desktop/LibreTV",
+      "enabled": true,
+      "kind": "node-service",
+      "start": {
+        "command": "cmd.exe",
+        "args": [
+          "/c",
+          "start-libretv.cmd"
+        ],
+        "detached": true
+      },
+      "stop": {
+        "strategy": "port",
+        "port": 8090
+      },
+      "url": "http://127.0.0.1:8090",
+      "port": 8090,
+      "startupTimeoutMs": 300000,
+      "startupMatch": "Ready in|started server|Local:",
+      "update": {
+        "strategy": "git-fork",
+        "remote": "origin",
+        "branch": "main",
+        "upstream": "upstream"
+      },
+      "notes": "fork of LibreSpark/LibreTV。脚本端口 8090，但 package.json 的 dev/start 是 8080——以脚本为准。未跟踪文件 start-libretv.cmd 和 tools/ 不受 pull 影响。"
+    },
+    {
+      "id": "github-popular-projects",
+      "name": "githubPopularProjects",
+      "path": "~/Desktop/githubPopularProjects",
+      "enabled": true,
+      "kind": "node-service",
+      "start": {
+        "command": "cmd.exe",
+        "args": [
+          "/c",
+          "start.bat"
+        ],
+        "detached": true
+      },
+      "stop": {
+        "strategy": "port",
+        "port": 3000
+      },
+      "url": "http://127.0.0.1:3000",
+      "port": 3000,
+      "startupTimeoutMs": 300000,
+      "startupMatch": "Ready in|started server|Local:",
+      "update": {
+        "strategy": "git",
+        "remote": "origin",
+        "branch": "main"
+      },
+      "notes": "脚本首次运行会自动 npm install，生产模式失败回退 dev。"
+    },
+    {
+      "id": "autotesthub",
+      "name": "AutoTestHub",
+      "path": "~/Desktop/AutoTestHub",
+      "enabled": true,
+      "kind": "python-service",
+      "start": {
+        "command": "cmd.exe",
+        "args": [
+          "/c",
+          "start.vbs"
+        ],
+        "detached": true
+      },
+      "stop": {
+        "strategy": "port",
+        "ports": [
+          8686,
+          5173
+        ]
+      },
+      "url": "http://127.0.0.1:5173",
+      "port": 8686,
+      "ports": [
+        8686,
+        5173
+      ],
+      "services": [
+        {
+          "label": "backend",
+          "port": 8686,
+          "url": "http://127.0.0.1:8686"
+        },
+        {
+          "label": "frontend",
+          "port": 5173,
+          "url": "http://127.0.0.1:5173"
+        }
+      ],
+      "startupTimeoutMs": 120000,
+      "startupMatch": "Uvicorn running|Application startup complete|VITE|ready in",
+      "update": {
+        "strategy": "git",
+        "remote": "origin",
+        "branch": "main"
+      },
+      "notes": "单条目管理整个项目：start.vbs 一次调用同时拉起 FastAPI(8686) 与 Vite(5173)，停止同时回收两个端口。早期版本曾拆成 backend/frontend 两条，但二者本就是一次启动/一次停止，拆开反而造成重复拉起与端口登记冲突，故合并。"
+    },
+    {
+      "id": "qoder2api-hub",
+      "name": "qoder2api-hub",
+      "path": "~/Desktop/qoder2api-hub",
+      "enabled": true,
+      "kind": "python-service",
+      "start": {
+        "command": "cmd.exe",
+        "args": [
+          "/c",
+          "start-qoder-proxy.bat"
+        ],
+        "detached": true
+      },
+      "stop": {
+        "strategy": "port",
+        "port": 8790
+      },
+      "url": "http://127.0.0.1:8790",
+      "port": 8790,
+      "startupTimeoutMs": 60000,
+      "startupMatch": "Uvicorn running|Running on|Dashboard",
+      "update": {
+        "strategy": "none"
+      },
+      "notes": "Python 代理，含 accounts/ 凭证目录。非 git 仓库，按启动器边界不做 git init，更新为手动。若想一键更新：自行 git clone 上游后把 update.strategy 改为 git。"
+    },
+    {
+      "id": "wb2api-panel",
+      "name": "wb2api-panel",
+      "path": "~/Desktop/wb2api-panel",
+      "enabled": true,
+      "kind": "go-binary",
+      "start": {
+        "command": "wb2api.exe",
+        "args": [],
+        "detached": true
+      },
+      "stop": {
+        "strategy": "procname",
+        "imageName": "wb2api.exe"
+      },
+      "url": "http://127.0.0.1:7863",
+      "port": 7863,
+      "startupTimeoutMs": 30000,
+      "startupMatch": "listening|Listening|:7863",
+      "update": {
+        "strategy": "none"
+      },
+      "notes": "Go 二进制分发的 API 面板，含 auths/ 与 data/state.json。端口来自同目录 config.json 的 listen 字段，改配置需同步改 registry。停止按进程名匹配，目录里的 .bak 备份不会被误杀。"
+    },
+    {
+      "id": "rea",
+      "name": "REA",
+      "path": "~/Desktop/REA",
+      "enabled": true,
+      "kind": "cli-tool",
+      "start": {
+        "command": null,
+        "args": []
+      },
+      "stop": {
+        "strategy": "none"
+      },
+      "url": null,
+      "port": null,
+      "startupTimeoutMs": 0,
+      "update": {
+        "strategy": "none"
+      },
+      "notes": "TS monorepo / MCP 工具，非常驻服务，无启停概念。非 git 仓库时更新为手动；自行 git clone 后可把策略改为 git。"
+    },
+    {
+      "id": "game-2048",
+      "name": "2048",
+      "path": "~/Desktop/2048",
+      "enabled": true,
+      "kind": "desktop-app",
+      "start": {
+        "command": "cmd.exe",
+        "args": [
+          "/c",
+          "if not exist dist\\2048.exe (echo [!] 未找到打包产物，请先运行 build.bat) & if exist dist\\2048.exe start \"\" dist\\2048.exe"
+        ],
+        "detached": true
+      },
+      "stop": {
+        "strategy": "procname",
+        "imageName": "2048.exe"
+      },
+      "url": null,
+      "port": null,
+      "startupTimeoutMs": 30000,
+      "update": {
+        "strategy": "git",
+        "remote": "origin",
+        "branch": "main"
+      },
+      "notes": "pygame 桌面游戏。build_game.ps1 / build.bat 用 PyInstaller 打包，产物是 dist\\2048.exe（--name 2048）。2048_Game.lnk 只是快捷方式，不是产物。"
+    },
+    {
+      "id": "grimoire-echoes",
+      "name": "Grimoire-Echoes",
+      "path": "~/Desktop/Grimoire-Echoes",
+      "enabled": true,
+      "kind": "desktop-app",
+      "start": {
+        "command": "cmd.exe",
+        "args": [
+          "/c",
+          "start \"\" game\\build\\GrimoireEchoes-v0.0.1-windows.exe"
+        ],
+        "detached": true
+      },
+      "stop": {
+        "strategy": "procname",
+        "imageName": "GrimoireEchoes-v0.0.1-windows.exe"
+      },
+      "url": null,
+      "port": null,
+      "startupTimeoutMs": 30000,
+      "update": {
+        "strategy": "git",
+        "remote": "origin",
+        "branch": "main"
+      },
+      "notes": "Godot 4 工程，已有导出产物 game/build/GrimoireEchoes-v0.0.1-windows.exe，直接运行无需编辑器。工作区有未跟踪的 game/.godot/editor/*.cfg（.gitignore 只忽略了 .godot/imported/ 和 *.tmp），更新会被前置检查拒绝——需用户自行决定是否补 .gitignore。"
+    },
+    {
+      "id": "openviking",
+      "name": "OpenViking",
+      "path": "~/.openviking",
+      "enabled": true,
+      "kind": "python-service",
+      "start": {
+        "command": "powershell.exe",
+        "args": [
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "~/.openviking/start-server-hidden.ps1"
+        ],
+        "detached": true
+      },
+      "stop": {
+        "strategy": "port",
+        "port": 1933
+      },
+      "url": "http://127.0.0.1:1933",
+      "port": 1933,
+      "startupTimeoutMs": 120000,
+      "startupMatch": "Server is ready|responding on port 1933|already running",
+      "update": {
+        "strategy": "none"
+      },
+      "notes": "pip 安装的常驻服务，端口 1933，冷启动约 40 秒。启动复用官方 start-server-hidden.ps1；停止走端口反查（无官方停止命令，软杀→3 秒后强杀）。非 git 仓库，升级请手动 pip install -U。"
+    }
+  ]
+}

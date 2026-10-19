@@ -6,6 +6,7 @@
  */
 
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { logger } from '../util/logger.js';
@@ -13,6 +14,8 @@ import { logger } from '../util/logger.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
 const REGISTRY_PATH = path.join(ROOT, 'data', 'registry.json');
+/** 示例配置：入库、可移植；真正的 registry.json 含本机路径，不入库 */
+const EXAMPLE_PATH = path.join(ROOT, 'data', 'registry.example.json');
 
 const VALID_KINDS = ['node-service', 'python-service', 'go-binary', 'cli-tool', 'desktop-app', 'observe-only'];
 const VALID_STOP_STRATEGIES = ['port', 'procname', 'command', 'none'];
@@ -26,6 +29,58 @@ export const VERSION = '1.1.0';
 
 /** 当前平台是否受支持（停止能力依赖 netstat/taskkill，仅 Windows 完整可用） */
 export const PLATFORM_SUPPORTED = process.platform === 'win32';
+
+/**
+ * 展开配置里的可移植路径写法。
+ *
+ * 支持两种占位：
+ *   ~/xxx          → 用户主目录
+ *   ${ENV_NAME}    → 环境变量
+ *
+ * 为什么需要：开源仓库里不能写死 C:/Users/<你的名字>/...。
+ * 示例配置用 ~ 表示；用户本机那份 registry.json（不入库）写绝对路径也可以。
+ *
+ * @param {string} value
+ * @returns {string}
+ */
+export function expandPath(value) {
+  if (typeof value !== 'string' || value.length === 0) return value;
+
+  let out = value;
+  if (out === '~') out = os.homedir();
+  else if (out.startsWith('~/') || out.startsWith('~\\')) out = path.join(os.homedir(), out.slice(2));
+
+  out = out.replace(/\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g, (whole, name) =>
+    process.env[name] !== undefined ? process.env[name] : whole,
+  );
+  return out;
+}
+
+/**
+ * 返回一份路径已展开的项目副本（不修改入参）。
+ *
+ * @param {any} project
+ * @returns {any}
+ */
+function withExpandedPaths(project) {
+  const next = { ...project, path: expandPath(project.path) };
+  if (project.start) {
+    next.start = {
+      ...project.start,
+      command:
+        typeof project.start.command === 'string' ? expandPath(project.start.command) : project.start.command,
+      args: Array.isArray(project.start.args) ? project.start.args.map(expandPath) : project.start.args,
+    };
+  }
+  if (project.stop) {
+    next.stop = {
+      ...project.stop,
+      command: typeof project.stop.command === 'string' ? expandPath(project.stop.command) : project.stop.command,
+      args: Array.isArray(project.stop.args) ? project.stop.args.map(expandPath) : project.stop.args,
+    };
+  }
+  return next;
+}
 
 /**
  * 校验单个项目条目，返回错误信息数组（空数组 = 合法）。
@@ -200,6 +255,15 @@ export function validateRegistry(data) {
  * @returns {{ version: number, projects: any[] }}
  */
 export function loadRegistry() {
+  // 首次运行（开源用户克隆后）：从示例配置引导，避免直接报"文件不存在"
+  if (!fs.existsSync(REGISTRY_PATH) && fs.existsSync(EXAMPLE_PATH)) {
+    fs.mkdirSync(path.dirname(REGISTRY_PATH), { recursive: true });
+    fs.copyFileSync(EXAMPLE_PATH, REGISTRY_PATH);
+    logger.info('未找到 data/registry.json，已从 registry.example.json 创建', {
+      hint: '按本机实际路径修改后重启',
+    });
+  }
+
   let raw;
   try {
     raw = fs.readFileSync(REGISTRY_PATH, 'utf8');
@@ -219,7 +283,8 @@ export function loadRegistry() {
     throw new Error(`注册表校验失败（共 ${errors.length} 处）：\n  - ${errors.join('\n  - ')}`);
   }
 
-  return data;
+  // 返回展开后的副本：业务层拿到的永远是真实路径，配置里可继续用 ~ / ${ENV}
+  return { ...data, projects: data.projects.map(withExpandedPaths) };
 }
 
 /**

@@ -106,12 +106,19 @@ src/
     └── logger.js       管理器日志 + 每项目独立日志
 
 public/index.html       单页看板（原生 JS + i18n + 明暗主题，无构建步骤）
+scripts/
+├── check-secrets.mjs   开源前敏感信息扫描（npm run check）
+├── test.mjs            跨平台测试入口（npm test）
+└── install-startup.ps1 开机自启（可选）
 data/
-├── registry.json       项目登记表（唯一需要手改的配置）
-└── logs/               运行日志
+├── registry.example.json  可移植模板（入库）
+├── registry.json          本机真实配置（不入库，含绝对路径）
+└── logs/                  运行日志（不入库）
 ```
 
 ## 配置：data/registry.json
+
+首次运行会自动从 `data/registry.example.json` 复制一份。路径支持 `~/...` 与 `${ENV}/...`。
 
 ```jsonc
 {
@@ -142,19 +149,58 @@ data/
 - 两个项目不能占同一端口（会校验）
 - `start.command: null` 表示不可启动，仅 `cli-tool` 和 `observe-only` 两种 kind 允许
 
+## 数据与安全隔离
+
+这个仓库要公开，而管理器必须知道本机路径。两者靠"配置分层"隔开：
+
+| 内容 | 是否入库 | 说明 |
+|---|---|---|
+| `data/registry.example.json` | ✅ 入库 | 可移植模板，路径用 `~/Desktop/...` |
+| `data/registry.json` | ❌ 不入库 | 你本机的真实配置，含绝对路径（用户名、目录布局） |
+| `data/logs/` | ❌ 不入库 | 运行日志；可能包含被管项目打印的内容（如首次启动的密钥） |
+| `data/state.json` | ❌ 不入库 | 运行期状态 |
+| `.env` / `*.pem` / `*.key` | ❌ 不入库 | 即使误建也不会被提交 |
+
+首次运行若没有 `data/registry.json`，会自动从示例复制一份并提示修改路径。
+
+配置里支持两种可移植写法，运行时自动展开：
+
+```jsonc
+"path": "~/Desktop/LibreTV"
+"path": "${PROJECTS_ROOT}/LibreTV"
+```
+
+### 边界与隔离
+
+- **只监听 `127.0.0.1:8780`**，不暴露到局域网；API 无鉴权（单机单人使用）。
+- **不向被管项目写入任何内容**——不 `git init`、不新增文件、不改配置。唯一的写操作是你点击的更新（`git pull`）与启停。
+- 日志只写本项目的 `data/logs/`，不落到被管项目目录。
+- 看板的"日志"面板读取的是上述本地日志，**不要把它截图或分享出去**——里面可能含有被管项目自己的敏感输出。
+
+### 发布前检查
+
+```bash
+npm run check
+```
+
+扫描所有 git 跟踪文件，发现个人绝对路径或疑似凭据（API Key、私钥、密钥赋值）即失败。建议在提交前或 CI 里跑一次。
+
+> **历史提示**：本仓库早期提交中曾包含带本机路径的 `data/registry.json`。目前未配置远程、从未推送，因此没有公开暴露。若在公开前想彻底清除历史痕迹，可在推送前重写历史（例如 `git filter-branch` 或直接新建仓库导入当前工作区）。
+
 ## 测试
 
 ```bash
-node --test "test/*.test.js"
+npm test
 ```
 
-92 项，覆盖：
+111 项，覆盖：
 
 - `netstat.test.js` — 端口解析边界（前缀误匹配、IPv4/IPv6 去重、非 LISTENING）
 - `platform.test.js` — 三个平台的输出格式解析一致性
-- `registry.test.js` — 配置校验
+- `registry.test.js` — 配置校验、可移植路径展开、示例配置不含个人路径
 - `git.test.js` — 真实 git 仓库：fast-forward、自动 stash 与回滚、冲突 abort
 - `dashboard.test.js` — 看板渲染逻辑、XSS 转义、i18n 键对齐、主题变量
+- `logger.test.js` — 北京时间格式与历史 UTC 日志转换
 
 wb2api-panel 已纳入启停测试范围（2026-10-19 实机验证通过）。
 

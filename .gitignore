@@ -1,17 +1,37 @@
 # 依赖
 node_modules/
 
-# 运行时产物
-data/logs/*.log
-data/logs/*.log.1
+# ============================================================
+# 本机配置与运行时数据：一律不入库（开源数据隔离）
+#
+# 真正的 registry.json 含本机绝对路径（用户名、目录布局），
+# 入库的只有可移植的 registry.example.json。
+# ============================================================
+data/registry.json
+data/registry.local.json
+data/logs/
 data/state.json
+data/*.tmp
+data/*.bak
+
+# 运行日志（任何位置）
+*.log
+*.log.[0-9]*
+npm-debug.log*
+
+# 环境与凭据：即使有人误建也不入库
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+secrets.json
 
 # 系统
 .DS_Store
 Thumbs.db
 desktop.ini
-
-# 日志与临时
-*.log
-npm-debug.log*
 nohup.out

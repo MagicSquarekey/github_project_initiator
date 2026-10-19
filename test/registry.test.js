@@ -7,7 +7,11 @@
 
 import test from 'node:test';
 import assert from 'node:assert';
-import { validateRegistry, MANAGER_PORT } from '../src/core/registry.js';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { execFileSync } from 'node:child_process';
+import { validateRegistry, expandPath, MANAGER_PORT, ROOT } from '../src/core/registry.js';
 
 /** 一个合法的最小项目 */
 function validProject(over = {}) {
@@ -175,4 +179,64 @@ test('startupTimeoutMs 必须是非负数', () => {
 test('错误信息带项目 id 便于定位', () => {
   const r = check([validProject({ id: 'libretv', kind: 'bogus' })]);
   assert.match(r.errors.join(), /libretv/);
+});
+
+/* ---------------- 开源数据隔离：可移植路径 ---------------- */
+
+test('expandPath：~ 展开为用户主目录', () => {
+  const home = os.homedir();
+  assert.equal(expandPath('~/Desktop/LibreTV'), path.join(home, 'Desktop/LibreTV'));
+  assert.equal(expandPath('~'), home);
+});
+
+test('expandPath：${ENV} 展开为环境变量', () => {
+  process.env.GPI_TEST_HOME = 'X:/fake-home';
+  try {
+    assert.equal(expandPath('${GPI_TEST_HOME}/proj'), 'X:/fake-home/proj');
+  } finally {
+    delete process.env.GPI_TEST_HOME;
+  }
+});
+
+test('expandPath：未定义的环境变量原样保留', () => {
+  assert.equal(expandPath('${NOT_DEFINED_XYZ}/a'), '${NOT_DEFINED_XYZ}/a');
+});
+
+test('expandPath：绝对路径不受影响', () => {
+  assert.equal(expandPath('C:/projects/a'), 'C:/projects/a');
+  assert.equal(expandPath('/opt/a'), '/opt/a');
+});
+
+test('expandPath：非字符串原样返回', () => {
+  assert.equal(expandPath(undefined), undefined);
+  assert.equal(expandPath(null), null);
+});
+
+test('示例配置存在、合法且不含个人绝对路径', () => {
+  const examplePath = path.join(ROOT, 'data', 'registry.example.json');
+  assert.ok(fs.existsSync(examplePath), 'data/registry.example.json 必须入库');
+
+  const raw = fs.readFileSync(examplePath, 'utf8');
+  // 不允许出现 C:/Users/<name>、/home/<name>、/Users/<name>
+  assert.doesNotMatch(raw, /[A-Za-z]:[\/]+Users[\/]+[^\/\s"'<]+/, '示例不得包含本机用户路径');
+  assert.doesNotMatch(raw, /\/(?:home|Users)\/[^\/\s"'<]+/, '示例不得包含 POSIX 用户路径');
+  // 应使用可移植写法
+  assert.match(raw, /"~\/Desktop\//, '示例路径应使用 ~/ 前缀');
+
+  const data = JSON.parse(raw);
+  const r = validateRegistry(data);
+  assert.equal(r.valid, true, r.errors.join('\n'));
+});
+
+test('本机 registry.json 不得被 git 跟踪（数据隔离）', () => {
+  let tracked = '';
+  try {
+    tracked = execFileSync('git', ['ls-files', 'data/registry.json'], {
+      cwd: ROOT,
+      encoding: 'utf8',
+    }).trim();
+  } catch {
+    return; // 非 git 环境跳过
+  }
+  assert.equal(tracked, '', 'data/registry.json 含本机路径，必须被 .gitignore 排除');
 });
