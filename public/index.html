@@ -571,6 +571,8 @@ async function act(action, id) {
       errors.set(id, data.message || data.error || t('opFail'));
       showToast(data.message || t('opFail'), false);
     } else {
+      // 成功后清掉上一次失败留在卡片上的红字
+      errors.delete(id);
       showToast(data.message || t('opFail'), true);
     }
   } catch (err) {
