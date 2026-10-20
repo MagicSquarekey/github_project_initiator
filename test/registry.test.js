@@ -168,6 +168,24 @@ test('未知 update 策略被拒', () => {
   assert.match(r.errors.join(), /strategy/);
 });
 
+test('version 静态覆盖必须是非空字符串', () => {
+  assert.equal(check([validProject({ version: '1.2.3' })]).valid, true);
+  assert.equal(check([validProject({ version: '' })]).valid, false);
+  assert.equal(check([validProject({ version: 123 })]).valid, false);
+});
+
+test('versionCommand 结构校验', () => {
+  const ok = validProject({ versionCommand: { command: 'node', args: ['-e', 'console.log(1)'] } });
+  assert.equal(check([ok]).valid, true, check([ok]).errors.join('\n'));
+
+  assert.equal(check([validProject({ versionCommand: { args: [] } })]).valid, false);
+  assert.equal(check([validProject({ versionCommand: { command: 'node', args: 'x' } })]).valid, false);
+  assert.equal(
+    check([validProject({ versionCommand: { command: 'node', args: [], timeoutMs: -1 } })]).valid,
+    false,
+  );
+});
+
 test('cli-tool 允许 start.command 为 null', () => {
   const r = check([
     validProject({

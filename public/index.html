@@ -159,6 +159,7 @@ main { padding: 20px 22px 56px; max-width: 1440px; margin: 0 auto; }
   display: flex; flex-wrap: wrap; align-items: center; gap: 5px 12px;
   font-size: 12px; color: var(--text-dim); min-height: 38px;
 }
+.meta .ver { color: var(--accent); font-weight: 600; }
 .meta a { color: var(--blue); text-decoration: none; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
 .meta a:hover { text-decoration: underline; }
 .meta .sep { color: var(--text-faint); }
@@ -288,6 +289,7 @@ const I18N = {
     cliTool: 'CLI 工具 · 无启停', desktopApp: '桌面程序', nonGit: '非 git',
     selfLabel: '自身',
     selfHint: '管理器自身：状态由当前进程提供，不能在看板里启停或更新。升级请手动 git pull 后重启。',
+    versionLabel: '版本', versionUnknown: '版本未知',
     dirty: '有改动', ahead: '领先', behind: '落后',
     confirmStopAll: '将停止所有正在运行的项目（包括非本管理器启动的），确定？',
     confirmStartAll: '将启动所有未运行且可启动的项目，确定？',
@@ -318,6 +320,7 @@ const I18N = {
     cliTool: 'CLI tool · no lifecycle', desktopApp: 'Desktop app', nonGit: 'non-git',
     selfLabel: 'self',
     selfHint: 'The manager itself: status comes from its own process; it cannot be started, stopped, or updated from this dashboard. Upgrade with git pull and a restart.',
+    versionLabel: 'version', versionUnknown: 'version unknown',
     dirty: 'dirty', ahead: 'ahead', behind: 'behind',
     confirmStopAll: 'This stops every running project (including ones not started by this manager). Continue?',
     confirmStartAll: 'This starts every stopped and startable project. Continue?',
@@ -422,9 +425,24 @@ function cardStateClass(p) {
   return p.running ? 'running' : 'stopped';
 }
 
+function fmtVersion(v) {
+  if (!v) return t('versionUnknown');
+  const s = String(v);
+  // git describe 在无 tag 时只给短 SHA：显示成 @abc1234，避免看起来像 v1.2.3
+  if (/^[0-9a-f]{7,40}$/i.test(s)) return `@${s.slice(0, 7)}`;
+  return /^v/i.test(s) ? s : `v${s}`;
+}
+
 function metaHtml(p) {
   const parts = [];
   const sep = '<span class="sep">·</span>';
+
+  // 版本号放最前面：一眼能看到各项目当前版本
+  if (p.version) {
+    parts.push(`<span class="mono ver" title="${esc(t('versionLabel'))}">${esc(fmtVersion(p.version))}</span>`);
+  } else {
+    parts.push(`<span class="warn" title="${esc(t('versionLabel'))}">${esc(t('versionUnknown'))}</span>`);
+  }
 
   // 第一行：地址 / 类型说明
   if (p.url) {

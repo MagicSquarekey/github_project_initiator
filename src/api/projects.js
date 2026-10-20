@@ -8,8 +8,9 @@
 
 import path from 'node:path';
 import fs from 'node:fs';
-import { loadRegistry, portsOf } from '../core/registry.js';
+import { loadRegistry, portsOf, VERSION } from '../core/registry.js';
 import { probeProject } from '../core/probe.js';
+import { detectVersion } from '../core/version.js';
 import { gitSnapshot } from '../core/git.js';
 import { startProject, stopProject, restartProject, getRuntime } from '../core/process.js';
 import { updateProject } from '../core/update.js';
@@ -23,10 +24,14 @@ import { logger } from '../util/logger.js';
  * @returns {Promise<any>}
  */
 export async function describeProject(project) {
-  const [probe, git] = await Promise.all([probeProject(project), gitSnapshot(project.path)]);
+  const self = project.self === true;
+  const [probe, git, version] = await Promise.all([
+    probeProject(project),
+    gitSnapshot(project.path),
+    self ? Promise.resolve(VERSION) : detectVersion(project),
+  ]);
   const rt = getRuntime(project.id);
   const ports = portsOf(project);
-  const self = project.self === true;
 
   // 可更新性：需要是 git 仓库 + 配置了 git 策略。
   // 启动器边界：非 git 仓库一律手动更新——绝不为"让它可更新"而 git init 项目目录。
@@ -50,6 +55,8 @@ export async function describeProject(project) {
     notes: project.notes ?? null,
     // 管理器自身：看板据此隐藏启停按钮、显示"自身"标记
     self,
+    // 版本号：清单/命令/git/ES jar 自动探测；自身用 VERSION 常量
+    version,
 
     running: probe.running,
     runningVia: probe.via,

@@ -106,7 +106,7 @@ function proj(over) {
   return {
     id: 'x', name: 'X', kind: 'node-service', path: '', enabled: true,
     running: false, runningVia: null, openPorts: [], pids: [], phase: 'idle',
-    lastError: null, ports: [], url: null, startable: true, updatable: true,
+    lastError: null, version: null, ports: [], url: null, startable: true, updatable: true,
     uptimeSec: null, git: { ...baseGit }, ...over,
   };
 }
@@ -213,6 +213,30 @@ test('XSS：项目名中的 HTML 被转义', () => {
   const h = grid.children.join('');
   assert.doesNotMatch(h, /<img src=x onerror=alert\(1\)>/);
   assert.match(h, /&lt;img/);
+});
+
+test('卡片显示版本号，纯数字版本补 v 前缀', () => {
+  const { render, grid } = loadDashboard();
+  render([proj({ id: 'a', name: 'A', version: '2.19.5' })]);
+  assert.match(grid.children.join(''), /v2\.19\.5/);
+});
+
+test('已有 v 前缀的版本原样显示', () => {
+  const { render, grid } = loadDashboard();
+  render([proj({ id: 'a', name: 'A', version: 'V0.0.1' })]);
+  assert.match(grid.children.join(''), /V0\.0\.1/);
+});
+
+test('无 tag 的短 SHA 显示为 @sha', () => {
+  const { render, grid } = loadDashboard();
+  render([proj({ id: 'a', name: 'A', version: 'df50a82' })]);
+  assert.match(grid.children.join(''), /@df50a82/);
+});
+
+test('版本未知时显示提示', () => {
+  const { render, grid } = loadDashboard();
+  render([proj({ id: 'a', name: 'A', version: null })]);
+  assert.match(grid.children.join(''), /版本未知/);
 });
 
 test('XSS：错误信息中的 HTML 被转义', () => {

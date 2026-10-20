@@ -96,6 +96,18 @@ function withExpandedPaths(project) {
       args: Array.isArray(project.stop.args) ? project.stop.args.map(expandPath) : project.stop.args,
     };
   }
+  if (project.versionCommand) {
+    next.versionCommand = {
+      ...project.versionCommand,
+      command:
+        typeof project.versionCommand.command === 'string'
+          ? expandPath(project.versionCommand.command)
+          : project.versionCommand.command,
+      args: Array.isArray(project.versionCommand.args)
+        ? project.versionCommand.args.map(expandPath)
+        : project.versionCommand.args,
+    };
+  }
   return next;
 }
 
@@ -242,6 +254,29 @@ function validateProject(p, index) {
     errors.push(`${where}.update: 必填对象`);
   } else if (!VALID_UPDATE_STRATEGIES.includes(update.strategy)) {
     errors.push(`${where}.update.strategy: 必须是 ${VALID_UPDATE_STRATEGIES.join(' / ')}`);
+  }
+
+  // 可选：版本号覆盖 / 动态版本命令
+  if (p.version !== undefined && p.version !== null) {
+    if (typeof p.version !== 'string' || p.version.trim().length === 0) {
+      errors.push(`${where}.version: 必须是非空字符串`);
+    }
+  }
+  if (p.versionCommand !== undefined && p.versionCommand !== null) {
+    const vc = p.versionCommand;
+    if (!vc || typeof vc !== 'object' || Array.isArray(vc)) {
+      errors.push(`${where}.versionCommand: 必须是对象`);
+    } else {
+      if (typeof vc.command !== 'string' || vc.command.length === 0) {
+        errors.push(`${where}.versionCommand.command: 必填字符串`);
+      }
+      if (!Array.isArray(vc.args) || vc.args.some((a) => typeof a !== 'string')) {
+        errors.push(`${where}.versionCommand.args: 必须是字符串数组`);
+      }
+      if (vc.timeoutMs !== undefined && (typeof vc.timeoutMs !== 'number' || vc.timeoutMs < 0)) {
+        errors.push(`${where}.versionCommand.timeoutMs: 必须是非负数`);
+      }
+    }
   }
 
   if (typeof p.startupTimeoutMs !== 'number' || p.startupTimeoutMs < 0) {

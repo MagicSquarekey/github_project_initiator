@@ -198,6 +198,20 @@
 - **日志天然对齐**：`id=manager` 对应 `data/logs/manager.log`，日志按钮不需要特殊分支。
 - **后台仍会 fetch**：自身 `update.strategy` 是 `none`（不能一键更新），但仍参与每 5 分钟的 `git fetch`，所以卡片上的落后提交数是新鲜的；升级方式仍是手动 `git pull` 后重启。
 
+### 3.4 版本号从哪来
+
+看板每张卡片都显示版本号。启动器不改项目，所以版本只能"读"出来，按可靠性排序：
+
+1. `registry.json` 的 `version` 静态覆盖（如 wb2api-panel）
+2. `versionCommand` 动态查询（如 OpenViking 查 pip 元数据）
+3. 根目录清单：`package.json` / `pyproject.toml` / `Cargo.toml` / `project.godot` / `VERSION` / `.release-please-manifest.json`
+4. monorepo 常见子目录：`frontend/package.json`、`backend/pyproject.toml`、`game/project.godot` 等
+5. 根目录 Python 的 `VERSION` / `__version__` 常量（如 qoder2api-hub）
+6. Elasticsearch 的 `lib/elasticsearch-<x.y.z>.jar`
+7. `git describe --tags --always`（无清单的 git 项目，如 2048 / Grimoire-Echoes）
+
+结果缓存 60 秒：看板每 3 秒轮询，不能让 Python/git 子进程每 3 秒起一次。无 tag 时 `git describe` 只给短 SHA，看板显示为 `@abc1234`；完全无来源显示"版本未知"。
+
 ---
 
 ## 4. 状态探测：怎么知道"在不在跑"
