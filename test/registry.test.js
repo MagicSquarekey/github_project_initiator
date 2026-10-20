@@ -81,6 +81,11 @@ test('kind 必须在白名单内', () => {
   assert.match(r.errors.join(), /kind/);
 });
 
+test('java-service 是合法 kind（Elasticsearch 等 JVM 服务）', () => {
+  const r = check([validProject({ kind: 'java-service' })]);
+  assert.equal(r.valid, true, r.errors.join('\n'));
+});
+
 test('非法端口号被拒', () => {
   for (const bad of [0, -1, 70000, 3.5, '4000', null]) {
     const r = check([validProject({ port: bad, stop: { strategy: 'port', port: bad } })]);

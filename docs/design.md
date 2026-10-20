@@ -157,6 +157,7 @@
 |---|---|---|---|
 | `node-service` | LibreTV, githubPopularProjects, AutoTestHub(frontend) | `cmd.exe /c <脚本>` | 复用项目自带脚本，保持行为一致 |
 | `python-service` | qoder2api-hub, AutoTestHub(backend) | `cmd.exe /c <脚本>` | 同上，脚本内含 Python 探测逻辑 |
+| `java-service` | Elasticsearch | `cmd.exe /c bin\elasticsearch.bat` | zip 发行版；端口 9200，停止走端口反查 |
 | `go-binary` | wb2api-panel | 直接 `wb2api.exe` | 读同目录 `config.json` |
 | `cli-tool` | REA | 无（仅记录信息） | 不常驻，无启停概念 |
 | `desktop-app` | 2048, Grimoire-Echoes | `cmd.exe /c <脚本>` 或直达 exe | 启动即算"运行"，停止用进程名 |

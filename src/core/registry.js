@@ -17,7 +17,15 @@ const REGISTRY_PATH = path.join(ROOT, 'data', 'registry.json');
 /** 示例配置：入库、可移植；真正的 registry.json 含本机路径，不入库 */
 const EXAMPLE_PATH = path.join(ROOT, 'data', 'registry.example.json');
 
-const VALID_KINDS = ['node-service', 'python-service', 'go-binary', 'cli-tool', 'desktop-app', 'observe-only'];
+const VALID_KINDS = [
+  'node-service',
+  'python-service',
+  'java-service',
+  'go-binary',
+  'cli-tool',
+  'desktop-app',
+  'observe-only',
+];
 const VALID_STOP_STRATEGIES = ['port', 'procname', 'command', 'none'];
 const VALID_UPDATE_STRATEGIES = ['git', 'git-fork', 'none'];
 
