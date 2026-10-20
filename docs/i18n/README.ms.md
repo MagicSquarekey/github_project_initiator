@@ -27,6 +27,7 @@ Memerlukan Node.js 20+. Windows disokong sepenuhnya; Linux/macOS menggunakan lap
 - **Mula / henti / mula semula** — menggunakan skrip mula setiap projek.
 - **Kemas kini sekali klik** — menyimpan sementara perubahan yang belum di-commit, mengemas kini dan memulihkannya; jika gagal, rollback.
 - **Sebarang stack** — Next.js, FastAPI, binari Go, Godot, pygame dan perkhidmatan pip dalam satu jadual.
+- **Menambah projek dari papan pemuka** — pilih folder; arahan mula dan port dikesan automatik, tanpa menyunting JSON.
 - **UI dwibahasa dan tema cerah/gelap** — tukar dari pengepala, diingati secara setempat.
 - **Hanya pelancar** — tidak pernah menjalankan git init atau menulis ke projek yang diurus.
 
@@ -54,4 +55,4 @@ Memerlukan Node.js 20+. Windows disokong sepenuhnya; Linux/macOS menggunakan lap
 
 - [Reka bentuk dan seni bina (Cina)](../design.md)
 - [README terperinci (Cina)](../README.full.zh-CN.md)
-- `npm test` — 111 ujian: penghuraian, pengesahan konfigurasi, aliran git dan pemaparan papan pemuka
+- `npm test` — 190 ujian: penghuraian, pengesahan konfigurasi, aliran git dan pemaparan papan pemuka

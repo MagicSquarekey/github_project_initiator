@@ -27,6 +27,7 @@ Richiede Node.js 20+. Windows pienamente supportato; Linux/macOS usano il livell
 - **Avvia / arresta / riavvia** — riutilizza lo script di avvio di ciascun progetto.
 - **Aggiornamento con un clic** — salva temporaneamente le modifiche non confermate, aggiorna e le ripristina; in caso di errore esegue il rollback.
 - **Qualsiasi stack** — Next.js, FastAPI, binari Go, Godot, pygame e servizi pip in un'unica tabella.
+- **Aggiungere progetti dalla dashboard** — scegli una cartella: comando di avvio e porta vengono rilevati automaticamente, senza modificare JSON.
 - **Interfaccia bilingue e tema chiaro/scuro** — cambio dall'intestazione, memorizzato localmente.
 - **Solo launcher** — non esegue mai git init né scrive nei progetti gestiti.
 
@@ -54,4 +55,4 @@ Richiede Node.js 20+. Windows pienamente supportato; Linux/macOS usano il livell
 
 - [Design e architettura (cinese)](../design.md)
 - [README dettagliato (cinese)](../README.full.zh-CN.md)
-- `npm test` — 111 test: parsing, validazione della configurazione, flussi git e rendering della dashboard
+- `npm test` — 190 test: parsing, validazione della configurazione, flussi git e rendering della dashboard

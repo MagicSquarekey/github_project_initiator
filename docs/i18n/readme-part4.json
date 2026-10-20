@@ -8,6 +8,7 @@
       ["เริ่ม / หยุด / รีสตาร์ท", "ใช้สคริปต์เริ่มต้นของแต่ละโปรเจกต์"],
       ["อัปเดตในคลิกเดียว", "สำรองการเปลี่ยนแปลงที่ยังไม่ commit ชั่วคราว อัปเดตแล้วคืนกลับ หากล้มเหลวจะย้อนกลับ"],
       ["ทุกสแตก", "Next.js, FastAPI, ไบนารี Go, Godot, pygame และบริการ pip ในตารางเดียว"],
+      ["เพิ่มโปรเจกต์จากแดชบอร์ด", "เลือกโฟลเดอร์ ระบบจะตรวจหาคำสั่งเริ่มต้นและพอร์ตให้อัตโนมัติ ไม่ต้องแก้ JSON"],
       ["UI สองภาษาและธีมสว่าง/มืด", "สลับจากแถบหัว จำค่าไว้ในเครื่อง"],
       ["เป็นเพียงตัวเรียกใช้งาน", "ไม่รัน git init และไม่เขียนลงโปรเจกต์ที่จัดการ"]
     ],
@@ -25,7 +26,7 @@
     "docs": "เอกสาร",
     "designLabel": "การออกแบบและสถาปัตยกรรม (ภาษาจีน)",
     "fullLabel": "README ฉบับละเอียด (ภาษาจีน)",
-    "testsLabel": "111 การทดสอบ: การแยกวิเคราะห์ การตรวจสอบการตั้งค่า ขั้นตอน git และการเรนเดอร์แดชบอร์ด"
+    "testsLabel": "190 การทดสอบ: การแยกวิเคราะห์ การตรวจสอบการตั้งค่า ขั้นตอน git และการเรนเดอร์แดชบอร์ด"
   },
   "id": {
     "name": "Bahasa Indonesia",
@@ -36,6 +37,7 @@
       ["Mulai / hentikan / mulai ulang", "memakai skrip mulai milik tiap proyek."],
       ["Pembaruan sekali klik", "menyimpan sementara perubahan yang belum di-commit, memperbarui, lalu memulihkannya; gagal berarti rollback."],
       ["Semua stack", "Next.js, FastAPI, biner Go, Godot, pygame, dan layanan pip dalam satu tabel."],
+      ["Menambahkan proyek dari dasbor", "pilih folder; perintah mulai dan port dideteksi otomatis, tanpa mengedit JSON."],
       ["UI dua bahasa dan tema terang/gelap", "beralih dari header, diingat secara lokal."],
       ["Hanya peluncur", "tidak pernah menjalankan git init atau menulis ke proyek yang dikelola."]
     ],
@@ -53,7 +55,7 @@
     "docs": "Dokumentasi",
     "designLabel": "Desain dan arsitektur (Tionghoa)",
     "fullLabel": "README terperinci (Tionghoa)",
-    "testsLabel": "111 pengujian: parsing, validasi konfigurasi, alur git, dan rendering dasbor"
+    "testsLabel": "190 pengujian: parsing, validasi konfigurasi, alur git, dan rendering dasbor"
   },
   "ms": {
     "name": "Bahasa Melayu",
@@ -64,6 +66,7 @@
       ["Mula / henti / mula semula", "menggunakan skrip mula setiap projek."],
       ["Kemas kini sekali klik", "menyimpan sementara perubahan yang belum di-commit, mengemas kini dan memulihkannya; jika gagal, rollback."],
       ["Sebarang stack", "Next.js, FastAPI, binari Go, Godot, pygame dan perkhidmatan pip dalam satu jadual."],
+      ["Menambah projek dari papan pemuka", "pilih folder; arahan mula dan port dikesan automatik, tanpa menyunting JSON."],
       ["UI dwibahasa dan tema cerah/gelap", "tukar dari pengepala, diingati secara setempat."],
       ["Hanya pelancar", "tidak pernah menjalankan git init atau menulis ke projek yang diurus."]
     ],
@@ -81,7 +84,7 @@
     "docs": "Dokumentasi",
     "designLabel": "Reka bentuk dan seni bina (Cina)",
     "fullLabel": "README terperinci (Cina)",
-    "testsLabel": "111 ujian: penghuraian, pengesahan konfigurasi, aliran git dan pemaparan papan pemuka"
+    "testsLabel": "190 ujian: penghuraian, pengesahan konfigurasi, aliran git dan pemaparan papan pemuka"
   },
   "nl": {
     "name": "Nederlands",
@@ -92,6 +95,7 @@
       ["Starten / stoppen / herstarten", "gebruikt het eigen startscript van elk project."],
       ["Updaten met één klik", "niet-gecommitte wijzigingen worden tijdelijk opgeslagen, waarna de update volgt en ze worden hersteld; bij een fout wordt teruggedraaid."],
       ["Elke stack", "Next.js, FastAPI, Go-binaries, Godot, pygame en pip-diensten in één tabel."],
+      ["Projecten toevoegen vanaf het dashboard", "kies een map; het startcommando en de poort worden automatisch gedetecteerd, geen JSON-bewerking nodig."],
       ["Tweetalige UI en licht/donker thema", "wisselen in de kop, lokaal onthouden."],
       ["Alleen launcher", "voert nooit git init uit en schrijft niet in beheerde projecten."]
     ],
@@ -109,7 +113,7 @@
     "docs": "Documentatie",
     "designLabel": "Ontwerp en architectuur (Chinees)",
     "fullLabel": "Uitgebreide README (Chinees)",
-    "testsLabel": "111 tests: parsing, configuratievalidatie, git-flows en dashboard-rendering"
+    "testsLabel": "190 tests: parsing, configuratievalidatie, git-flows en dashboard-rendering"
   },
   "pl": {
     "name": "Polski",
@@ -120,6 +124,7 @@
       ["Uruchom / zatrzymaj / uruchom ponownie", "korzysta z własnego skryptu startowego projektu."],
       ["Aktualizacja jednym kliknięciem", "tymczasowo zapisuje niezacommitowane zmiany, aktualizuje i przywraca je; przy błędzie wycofuje."],
       ["Dowolny stack", "Next.js, FastAPI, binaria Go, Godot, pygame i usługi pip w jednej tabeli."],
+      ["Dodawanie projektów z panelu", "wybierz folder; polecenie startu i port zostaną wykryte automatycznie, bez edycji JSON."],
       ["Dwujęzyczny interfejs i motyw jasny/ciemny", "przełączanie w nagłówku, zapamiętywane lokalnie."],
       ["Tylko launcher", "nigdy nie uruchamia git init ani nie zapisuje w zarządzanych projektach."]
     ],
@@ -137,7 +142,7 @@
     "docs": "Dokumentacja",
     "designLabel": "Projekt i architektura (po chińsku)",
     "fullLabel": "Szczegółowy README (po chińsku)",
-    "testsLabel": "111 testów: parsowanie, walidacja konfiguracji, przepływy git i renderowanie pulpitu"
+    "testsLabel": "190 testów: parsowanie, walidacja konfiguracji, przepływy git i renderowanie pulpitu"
   },
   "uk": {
     "name": "Українська",
@@ -148,6 +153,7 @@
       ["Запуск / зупинка / перезапуск", "використовує власний скрипт запуску проєкту."],
       ["Оновлення одним кліком", "тимчасово зберігає незакомічені зміни, оновлює й відновлює їх; у разі помилки відкочує."],
       ["Будь-який стек", "Next.js, FastAPI, бінарники Go, Godot, pygame та pip-сервіси в одній таблиці."],
+      ["Додавання проєктів з панелі", "виберіть теку — команда запуску та порт визначаться автоматично, без редагування JSON."],
       ["Двомовний інтерфейс і світла/темна тема", "перемикання в шапці, запам'ятовується локально."],
       ["Лише лаунчер", "ніколи не виконує git init і не пише в керовані проєкти."]
     ],
@@ -165,6 +171,6 @@
     "docs": "Документація",
     "designLabel": "Дизайн та архітектура (китайською)",
     "fullLabel": "Детальний README (китайською)",
-    "testsLabel": "111 тестів: парсинг, перевірка конфігурації, git-процеси та рендеринг панелі"
+    "testsLabel": "190 тестів: парсинг, перевірка конфігурації, git-процеси та рендеринг панелі"
   }
 }

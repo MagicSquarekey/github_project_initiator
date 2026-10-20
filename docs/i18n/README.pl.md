@@ -27,6 +27,7 @@ Wymaga Node.js 20+. Windows w pełni obsługiwany; Linux/macOS korzystają z wbu
 - **Uruchom / zatrzymaj / uruchom ponownie** — korzysta z własnego skryptu startowego projektu.
 - **Aktualizacja jednym kliknięciem** — tymczasowo zapisuje niezacommitowane zmiany, aktualizuje i przywraca je; przy błędzie wycofuje.
 - **Dowolny stack** — Next.js, FastAPI, binaria Go, Godot, pygame i usługi pip w jednej tabeli.
+- **Dodawanie projektów z panelu** — wybierz folder; polecenie startu i port zostaną wykryte automatycznie, bez edycji JSON.
 - **Dwujęzyczny interfejs i motyw jasny/ciemny** — przełączanie w nagłówku, zapamiętywane lokalnie.
 - **Tylko launcher** — nigdy nie uruchamia git init ani nie zapisuje w zarządzanych projektach.
 
@@ -54,4 +55,4 @@ Wymaga Node.js 20+. Windows w pełni obsługiwany; Linux/macOS korzystają z wbu
 
 - [Projekt i architektura (po chińsku)](../design.md)
 - [Szczegółowy README (po chińsku)](../README.full.zh-CN.md)
-- `npm test` — 111 testów: parsowanie, walidacja konfiguracji, przepływy git i renderowanie pulpitu
+- `npm test` — 190 testów: parsowanie, walidacja konfiguracji, przepływy git i renderowanie pulpitu

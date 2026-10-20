@@ -20,6 +20,7 @@ node src/index.js
 | 启动 / 停止 / 重启 | 复用项目自带启动脚本，保留各项目原有的环境处理逻辑 |
 | **一键更新** | 工作区有未提交改动也无需手动处理——自动 stash、更新、恢复 |
 | 批量更新 | 顺序执行，逐个回显结果 |
+| **看板内添加项目** | 选目录 → 自动识别启动命令/端口 → 确认写入，无需手改 JSON；支持移除 |
 | 落后提示 | 显示远程领先的提交数（`↓N`），有更新时按钮带计数 |
 | 中英文切换 | 顶栏语言按钮，选择记住在本地 |
 | 明暗主题 | 顶栏主题按钮，选择记住在本地 |
@@ -58,6 +59,21 @@ node src/index.js
 | OpenViking | Python 常驻服务 | 1933 | 手动（pip 安装，非 git） |
 
 共 9 个条目。AutoTestHub 是单条目——`start.vbs` 一次调用同时拉起 backend(8686) 与 frontend(5173)，停止同时回收两个端口；卡片上会逐个显示子服务就绪状态。
+
+## 添加监测项目
+
+不用手写 `registry.json`：
+
+1. 点顶栏「添加项目」；
+2. 点「浏览…」选目录，或直接输入路径（支持 `~`）；
+3. 点「扫描目录」可列出该目录（留空则桌面）下尚未纳管的项目；
+4. 管理器自动识别：项目自带启动脚本、`package.json` 的 start/dev、同名 exe、jar、Python 入口、`.env`/config 里的端口、是否 git 仓库；
+5. 核对/修改表单（名称、端口、启动命令、停止方式、更新方式），点「添加」。
+
+识别结果只是建议：只在空字段里预填，不覆盖已输入内容，也不会自动保存。
+添加时仍走完整校验（目录存在、id 唯一、端口不冲突、start/stop/update 结构），失败会逐条列出原因。
+
+卡片上的「移除」只删除看板条目，**不会删除项目文件**；管理器自身不能移除。
 
 ## 一键更新是如何保证不丢改动的
 
@@ -118,7 +134,7 @@ data/
 
 ## 配置：data/registry.json
 
-首次运行会自动从 `data/registry.example.json` 复制一份。路径支持 `~/...` 与 `${ENV}/...`。
+首次运行会自动创建空的 `data/registry.json`，打开看板点「添加项目」即可录入自己的项目；也可以手动编辑。路径支持 `~/...` 与 `${ENV}/...`。`data/registry.example.json` 是可移植的格式参考。
 
 ```jsonc
 {
@@ -161,7 +177,7 @@ data/
 | `data/state.json` | ❌ 不入库 | 运行期状态 |
 | `.env` / `*.pem` / `*.key` | ❌ 不入库 | 即使误建也不会被提交 |
 
-首次运行若没有 `data/registry.json`，会自动从示例复制一份并提示修改路径。
+首次运行若没有 `data/registry.json`，会自动创建空注册表（不会复制示例项目）。
 
 配置里支持两种可移植写法，运行时自动展开：
 
@@ -193,13 +209,17 @@ npm run check
 npm test
 ```
 
-111 项，覆盖：
+190 项，覆盖：
 
 - `netstat.test.js` — 端口解析边界（前缀误匹配、IPv4/IPv6 去重、非 LISTENING）
 - `platform.test.js` — 三个平台的输出格式解析一致性
 - `registry.test.js` — 配置校验、可移植路径展开、示例配置不含个人路径
 - `git.test.js` — 真实 git 仓库：fast-forward、自动 stash 与回滚、冲突 abort
-- `dashboard.test.js` — 看板渲染逻辑、XSS 转义、i18n 键对齐、主题变量
+- `dashboard.test.js` — 看板渲染逻辑、XSS 转义、i18n 键对齐、主题变量、添加表单
+- `manage.test.js` — 项目纳管：默认值、id 避让、目录/端口/名称冲突、写盘与移除
+- `scan.test.js` — 启动脚本 / npm scripts / 端口识别、扫描跳过规则、目录浏览
+- `server.test.js` — 添加/识别/浏览/移除的真实 HTTP 流程、CORS 来源限制
+- `startable.test.js` — 启动脚本存在性预检（PATH 命令不被误判）
 - `logger.test.js` — 北京时间格式与历史 UTC 日志转换
 
 wb2api-panel 已纳入启停测试范围（2026-10-19 实机验证通过）。
@@ -218,6 +238,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-startup.ps1
 - wb2api-panel 为二进制分发、非 git 仓库，更新为手动；如需一键更新，自行 `git clone` 上游后把策略改为 `git`
 - 启动耗时：Next.js 项目首次启动可能需数分钟（含编译），超时已设为 300 秒
 - 跨平台运行时，`registry.json` 里的启动命令需按平台调整（`.bat` ↔ `.sh`）
+- 添加项目时的自动识别是启发式：端口/启动命令可能猜错，请在提交前核对；识别不到时手填即可
 
 ## 完整设计
 

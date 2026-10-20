@@ -27,6 +27,7 @@ Node.js 20+ gerekir. Windows tam desteklenir; Linux/macOS yerleşik platform kat
 - **Başlat / durdur / yeniden başlat** — her projenin kendi başlatma betiğini kullanır.
 - **Tek tıkla güncelleme** — işlenmemiş değişiklikleri geçici olarak saklar, günceller ve geri yükler; hata olursa geri alır.
 - **Her stack** — Next.js, FastAPI, Go ikili dosyaları, Godot, pygame ve pip servisleri tek tabloda.
+- **Panodan proje ekleme** — klasörü seçin; başlatma komutu ve port otomatik algılanır, JSON düzenlemeye gerek yok.
 - **İki dilli arayüz ve açık/koyu tema** — üst çubuktan değiştirilir, yerelde saklanır.
 - **Yalnızca başlatıcı** — yönetilen projelerde asla git init çalıştırmaz ve yazmaz.
 
@@ -54,4 +55,4 @@ Node.js 20+ gerekir. Windows tam desteklenir; Linux/macOS yerleşik platform kat
 
 - [Tasarım ve mimari (Çince)](../design.md)
 - [Ayrıntılı README (Çince)](../README.full.zh-CN.md)
-- `npm test` — 111 test: ayrıştırma, yapılandırma doğrulama, git akışları ve panel oluşturma
+- `npm test` — 190 test: ayrıştırma, yapılandırma doğrulama, git akışları ve panel oluşturma

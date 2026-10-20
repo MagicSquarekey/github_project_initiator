@@ -27,6 +27,7 @@ Vereist Node.js 20+. Windows volledig ondersteund; Linux/macOS gebruiken de inge
 - **Starten / stoppen / herstarten** — gebruikt het eigen startscript van elk project.
 - **Updaten met één klik** — niet-gecommitte wijzigingen worden tijdelijk opgeslagen, waarna de update volgt en ze worden hersteld; bij een fout wordt teruggedraaid.
 - **Elke stack** — Next.js, FastAPI, Go-binaries, Godot, pygame en pip-diensten in één tabel.
+- **Projecten toevoegen vanaf het dashboard** — kies een map; het startcommando en de poort worden automatisch gedetecteerd, geen JSON-bewerking nodig.
 - **Tweetalige UI en licht/donker thema** — wisselen in de kop, lokaal onthouden.
 - **Alleen launcher** — voert nooit git init uit en schrijft niet in beheerde projecten.
 
@@ -54,4 +55,4 @@ Vereist Node.js 20+. Windows volledig ondersteund; Linux/macOS gebruiken de inge
 
 - [Ontwerp en architectuur (Chinees)](../design.md)
 - [Uitgebreide README (Chinees)](../README.full.zh-CN.md)
-- `npm test` — 111 tests: parsing, configuratievalidatie, git-flows en dashboard-rendering
+- `npm test` — 190 tests: parsing, configuratievalidatie, git-flows en dashboard-rendering

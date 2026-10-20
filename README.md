@@ -27,6 +27,7 @@ Requires Node.js 20+. Windows is fully supported; Linux/macOS use the built-in p
 - **Start / stop / restart** — reuses each project's own start script, so its original environment handling is preserved.
 - **One-click update** — automatically stashes uncommitted changes, pulls, then restores them; failures roll back.
 - **Any stack** — Next.js, FastAPI, Go binaries, Godot, pygame and pip-installed services in one table.
+- **Add projects in the dashboard** — pick a folder; the start command and port are detected automatically, no JSON editing.
 - **Bilingual UI, light/dark** — Chinese/English toggle and theme switch, remembered locally.
 - **Launcher only** — never runs git init in, writes to, or restructures the managed projects.
 
@@ -54,4 +55,4 @@ Requires Node.js 20+. Windows is fully supported; Linux/macOS use the built-in p
 
 - [Design and architecture (Chinese)](docs/design.md)
 - [Detailed README (Chinese)](docs/README.full.zh-CN.md)
-- `npm test` — 111 tests: parsing, config validation, git flows, dashboard rendering
+- `npm test` — 190 tests: parsing, config validation, git flows, dashboard rendering

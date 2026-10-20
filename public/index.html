@@ -226,6 +226,74 @@ main { padding: 20px 22px 56px; max-width: 1440px; margin: 0 auto; }
   font: 12px/1.65 ui-monospace, "Cascadia Mono", Consolas, monospace;
   color: var(--text-dim); white-space: pre-wrap; word-break: break-all;
 }
+
+/* ============================================================
+   添加项目 / 目录浏览 弹窗
+   ============================================================ */
+.modal {
+  position: fixed; inset: 0; background: rgba(0,0,0,.5);
+  display: none; z-index: 110; padding: 3vh 3vw;
+}
+.modal.open { display: block; }
+.modal .panel {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  max-width: 920px; margin: 0 auto; max-height: 94vh;
+  display: flex; flex-direction: column; overflow: hidden;
+  box-shadow: 0 18px 48px rgba(0,0,0,.4);
+}
+.modal .panel.narrow { max-width: 720px; }
+.modal .panel header {
+  position: static; background: transparent; border-bottom: 1px solid var(--border);
+  padding: 13px 18px;
+}
+.modal .body { overflow: auto; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; }
+
+.form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; }
+@media (max-width: 720px) { .form-grid { grid-template-columns: 1fr; } }
+.field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.field label { font-size: 12px; color: var(--text-dim); }
+.field input, .field select, .field textarea {
+  font: inherit; font-size: 13px; color: var(--text);
+  background: var(--code-bg); border: 1px solid var(--border);
+  border-radius: 7px; padding: 7px 9px; outline: none; width: 100%;
+}
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
+.field .help { font-size: 11px; color: var(--text-faint); line-height: 1.4; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.row input { flex: 1; min-width: 160px; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.chip { font-size: 12px; padding: 4px 9px; border-radius: 999px; }
+.hint-label { font-size: 12px; color: var(--text-faint); }
+.hint-inline { font-size: 12px; color: var(--text-faint); padding: 6px 0; line-height: 1.5; }
+
+.candidates { display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow: auto; }
+.cand {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px;
+}
+.cand.managed { opacity: .55; }
+.cand-main { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.cand-main b { font-size: 13px; }
+.cand-path {
+  font-size: 11px; color: var(--text-faint);
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cand-meta { font-size: 11px; color: var(--text-dim); white-space: nowrap; }
+
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 4px; }
+.browse-list { display: flex; flex-direction: column; gap: 3px; max-height: 46vh; overflow: auto; }
+.browse-item {
+  text-align: left; background: transparent; border: 1px solid transparent;
+  border-radius: 6px; padding: 6px 8px;
+}
+.browse-item:hover:not(:disabled) { background: var(--btn-bg); border-color: var(--border); }
+.browse-path {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 12px; color: var(--text-dim); flex: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 </style>
 </head>
 <body>
@@ -242,6 +310,10 @@ main { padding: 20px 22px 56px; max-width: 1440px; margin: 0 auto; }
     <span class="led-dot"></span>
     <span data-i18n="running">运行</span> <b id="cnt-run">–</b> / <b id="cnt-total">–</b>
   </div>
+  <button id="btn-add" class="icon primary" title="Add project / 添加项目">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    <span data-i18n="addProject">添加项目</span>
+  </button>
   <button id="btn-start-all" data-i18n="startAll">全部启动</button>
   <button id="btn-update-all" class="primary" data-i18n="updateAll">批量更新</button>
   <button id="btn-stop-all" class="danger" data-i18n="stopAll">全部停止</button>
@@ -270,6 +342,140 @@ main { padding: 20px 22px 56px; max-width: 1440px; margin: 0 auto; }
       <button id="drawer-close" class="ghost" data-i18n="close">关闭</button>
     </header>
     <div class="body"><pre id="drawer-body"></pre></div>
+  </div>
+</div>
+
+<!-- 添加监测项目 -->
+<div id="add-modal" class="modal">
+  <div class="panel">
+    <header>
+      <div class="brand"><b data-i18n="addTitle">添加监测项目</b></div>
+      <div class="spacer"></div>
+      <button id="add-close" class="ghost" data-i18n="close">关闭</button>
+    </header>
+    <div class="body">
+      <div class="hint-inline" data-i18n="addIntro">选择项目目录后会自动识别启动方式和端口；确认无误再添加。</div>
+
+      <div class="field">
+        <label data-i18n="path">项目目录</label>
+        <div class="row">
+          <input id="add-path" placeholder="C:\path\to\project 或 ~/Desktop/project">
+          <button id="btn-browse" data-i18n="browse">浏览…</button>
+          <button id="btn-scan" data-i18n="scan">扫描目录</button>
+        </div>
+        <div class="help" data-i18n="pathHelp">留空扫描桌面。选中目录后会自动填好名称、启动命令和端口。</div>
+      </div>
+
+      <div class="candidates" id="add-candidates"></div>
+
+      <div class="form-grid">
+        <div class="field">
+          <label data-i18n="name">名称</label>
+          <input id="add-name" placeholder="LibreTV">
+        </div>
+        <div class="field">
+          <label data-i18n="idLabel">标识</label>
+          <input id="add-id" placeholder="auto">
+          <div class="help" data-i18n="idHint">留空自动生成；只能用小写字母、数字和连字符。</div>
+        </div>
+
+        <div class="field">
+          <label data-i18n="kindLabel">类型</label>
+          <select id="add-kind"></select>
+        </div>
+        <div class="field">
+          <label data-i18n="portLabel">端口</label>
+          <input id="add-port" placeholder="8080 或 8686, 5173">
+          <div class="help" data-i18n="portHint">多个端口用逗号分隔；停止时一并回收。</div>
+        </div>
+
+        <div class="field">
+          <label data-i18n="startCommand">启动命令</label>
+          <input id="add-start-command" placeholder="cmd.exe">
+        </div>
+        <div class="field">
+          <label data-i18n="startArgs">启动参数</label>
+          <input id="add-start-args" placeholder="/c start.bat">
+        </div>
+        <div class="field" style="grid-column:1/-1">
+          <div class="chips" id="add-start-hints"></div>
+        </div>
+
+        <div class="field">
+          <label data-i18n="urlLabel">访问地址</label>
+          <input id="add-url" placeholder="http://127.0.0.1:8080">
+        </div>
+        <div class="field">
+          <label data-i18n="stopStrategy">停止方式</label>
+          <select id="add-stop-strategy"></select>
+        </div>
+
+        <div class="field" id="add-stop-image-wrap">
+          <label data-i18n="stopImage">进程名（.exe）</label>
+          <input id="add-stop-image" placeholder="app.exe">
+        </div>
+        <div class="field" id="add-stop-command-wrap" style="display:none">
+          <label data-i18n="stopCommand">停止命令</label>
+          <input id="add-stop-command" placeholder="cmd.exe">
+        </div>
+        <div class="field" id="add-stop-args-wrap" style="display:none">
+          <label data-i18n="stopArgs">停止参数</label>
+          <input id="add-stop-args" placeholder="/c stop.bat">
+        </div>
+
+        <div class="field">
+          <label data-i18n="updateStrategy">更新方式</label>
+          <select id="add-update-strategy"></select>
+        </div>
+        <div class="field" id="add-update-git-wrap">
+          <label data-i18n="updateBranch">分支</label>
+          <input id="add-update-branch" placeholder="main">
+        </div>
+        <div class="field" id="add-update-command-wrap" style="display:none">
+          <label data-i18n="updateCommand">更新命令</label>
+          <input id="add-update-command" placeholder="python">
+        </div>
+        <div class="field" id="add-update-args-wrap" style="display:none">
+          <label data-i18n="updateArgs">更新参数</label>
+          <input id="add-update-args" placeholder="-U openviking">
+        </div>
+
+        <div class="field" style="grid-column:1/-1">
+          <label data-i18n="notesLabel">备注</label>
+          <input id="add-notes" placeholder="可选：端口来源、特殊启动条件等">
+        </div>
+      </div>
+
+      <div id="add-error" class="error" style="display:none"></div>
+
+      <div class="modal-actions">
+        <button id="add-cancel" data-i18n="cancel">取消</button>
+        <button id="add-submit" class="primary" data-i18n="add">添加</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 文件夹选择器 -->
+<div id="browse-modal" class="modal">
+  <div class="panel narrow">
+    <header>
+      <div class="brand"><b data-i18n="browseTitle">选择项目目录</b></div>
+      <div class="spacer"></div>
+      <button id="browse-close" class="ghost" data-i18n="close">关闭</button>
+    </header>
+    <div class="body">
+      <div class="row">
+        <button id="browse-up" data-i18n="up">上一级</button>
+        <span id="browse-path" class="browse-path"></span>
+      </div>
+      <div class="chips" id="browse-shortcuts"></div>
+      <div class="browse-list" id="browse-list"></div>
+      <div class="modal-actions">
+        <button id="browse-cancel" data-i18n="cancel">取消</button>
+        <button id="browse-select" class="primary" data-i18n="selectThisFolder">选择此目录</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -308,6 +514,76 @@ const I18N = {
     stashed: '已自动暂存本地改动',
     updatedTo: '已更新到最新',
     alreadyLatest: '已是最新',
+    addProject: '添加项目',
+    addTitle: '添加监测项目',
+    addIntro: '选择项目目录后会自动识别启动方式和端口；确认无误再添加。',
+    path: '项目目录',
+    pathHelp: '留空扫描桌面。选中目录后会自动填好名称、启动命令和端口。',
+    browse: '浏览…',
+    scan: '扫描目录',
+    scanning: '扫描中…',
+    candidates: '发现的项目',
+    noCandidates: '没有发现新项目。可以直接在下方手动填写。',
+    use: '使用',
+    alreadyManaged: '已添加',
+    name: '名称',
+    idLabel: '标识',
+    idHint: '留空自动生成；只能用小写字母、数字和连字符。',
+    kindLabel: '类型',
+    portLabel: '端口',
+    portHint: '多个端口用逗号分隔；停止时一并回收。',
+    startCommand: '启动命令',
+    startArgs: '启动参数',
+    detected: '识别到的启动方式',
+    urlLabel: '访问地址',
+    stopStrategy: '停止方式',
+    stopImage: '进程名（.exe）',
+    stopCommand: '停止命令',
+    stopArgs: '停止参数',
+    updateStrategy: '更新方式',
+    updateBranch: '分支',
+    updateCommand: '更新命令',
+    updateArgs: '更新参数',
+    notesLabel: '备注',
+    cancel: '取消',
+    add: '添加',
+    adding: '添加中…',
+    addOk: (n) => `已添加：${n}`,
+    addFail: '添加失败',
+    remove: '移除',
+    confirmRemove: (n) => `从看板移除 "${n}"？只改配置，不会删除任何文件。`,
+    removeOk: (n) => `已移除：${n}`,
+    browseTitle: '选择项目目录',
+    up: '上一级',
+    selectThisFolder: '选择此目录',
+    noSubdirs: '没有子目录',
+    chooseDrive: '选择一个磁盘或快捷位置',
+    shortcuts: { home: '主目录', desktop: '桌面', downloads: '下载', documents: '文档' },
+    scanFail: (e) => `扫描失败：${e}`,
+    inspectFail: (e) => `识别失败：${e}`,
+    needPath: '请先选择项目目录',
+    needName: '请填写项目名称',
+    needStart: '服务类项目需要启动命令；只想监测状态请把类型改为「CLI 工具」或「仅监测」',
+    kinds: {
+      'node-service': 'Node 服务',
+      'python-service': 'Python 服务',
+      'java-service': 'Java 服务',
+      'go-binary': 'Go 程序',
+      'desktop-app': '桌面程序',
+      'cli-tool': 'CLI 工具',
+      'observe-only': '仅监测',
+    },
+    stopMethods: {
+      port: '按端口停止',
+      procname: '按进程名停止',
+      command: '执行停止命令',
+      none: '不停止（仅监测）',
+    },
+    updateMethods: {
+      none: '手动更新',
+      git: 'git pull',
+      command: '执行更新命令',
+    },
   },
   en: {
     title: 'github_project_initiator · Project Manager',
@@ -339,6 +615,76 @@ const I18N = {
     stashed: 'Local changes auto-stashed',
     updatedTo: 'Updated to latest',
     alreadyLatest: 'Already up to date',
+    addProject: 'Add project',
+    addTitle: 'Add a monitored project',
+    addIntro: 'Pick the project folder — the start command and port are detected automatically. Review, then add.',
+    path: 'Project folder',
+    pathHelp: 'Leave empty to scan the Desktop. Choosing a folder fills in the name, start command, and port.',
+    browse: 'Browse…',
+    scan: 'Scan folder',
+    scanning: 'Scanning…',
+    candidates: 'Discovered projects',
+    noCandidates: 'No new projects found. You can still fill in the form below.',
+    use: 'Use',
+    alreadyManaged: 'Added',
+    name: 'Name',
+    idLabel: 'ID',
+    idHint: 'Auto-generated if empty; lowercase letters, digits, and hyphens only.',
+    kindLabel: 'Type',
+    portLabel: 'Port',
+    portHint: 'Separate multiple ports with commas; all are released on stop.',
+    startCommand: 'Start command',
+    startArgs: 'Start arguments',
+    detected: 'Detected start methods',
+    urlLabel: 'URL',
+    stopStrategy: 'Stop method',
+    stopImage: 'Process name (.exe)',
+    stopCommand: 'Stop command',
+    stopArgs: 'Stop arguments',
+    updateStrategy: 'Update method',
+    updateBranch: 'Branch',
+    updateCommand: 'Update command',
+    updateArgs: 'Update arguments',
+    notesLabel: 'Notes',
+    cancel: 'Cancel',
+    add: 'Add',
+    adding: 'Adding…',
+    addOk: (n) => `Added: ${n}`,
+    addFail: 'Failed to add',
+    remove: 'Remove',
+    confirmRemove: (n) => `Remove "${n}" from the dashboard? This only edits the config; no files are deleted.`,
+    removeOk: (n) => `Removed: ${n}`,
+    browseTitle: 'Choose project folder',
+    up: 'Up',
+    selectThisFolder: 'Choose this folder',
+    noSubdirs: 'No subfolders',
+    chooseDrive: 'Choose a drive or shortcut',
+    shortcuts: { home: 'Home', desktop: 'Desktop', downloads: 'Downloads', documents: 'Documents' },
+    scanFail: (e) => `Scan failed: ${e}`,
+    inspectFail: (e) => `Detection failed: ${e}`,
+    needPath: 'Choose a project folder first',
+    needName: 'Enter a project name',
+    needStart: 'Service projects need a start command; choose CLI tool or observe-only to monitor without starting.',
+    kinds: {
+      'node-service': 'Node service',
+      'python-service': 'Python service',
+      'java-service': 'Java service',
+      'go-binary': 'Go program',
+      'desktop-app': 'Desktop app',
+      'cli-tool': 'CLI tool',
+      'observe-only': 'Observe only',
+    },
+    stopMethods: {
+      port: 'By port',
+      procname: 'By process name',
+      command: 'Run stop command',
+      none: 'Do not stop',
+    },
+    updateMethods: {
+      none: 'Manual',
+      git: 'git pull',
+      command: 'Run update command',
+    },
   },
 };
 
@@ -364,6 +710,8 @@ function applyLang() {
   document.title = I18N[lang].title;
   document.getElementById('lang-label').textContent = lang === 'zh' ? 'EN' : '中文';
   localStorage.setItem('gpi-lang', lang);
+  fillFormSelects();
+  syncAddForm();
   render_now();
 }
 
@@ -500,6 +848,10 @@ function actionsHtml(p) {
     }
   }
   b.push(`<button data-act="logs" data-id="${esc(p.id)}" ${dis}>${esc(t('logs'))}</button>`);
+  // 只移除看板条目，不删除任何文件；管理器自身不允许移除
+  if (!p.self) {
+    b.push(`<button data-act="remove" data-id="${esc(p.id)}" class="ghost danger" ${dis} title="${esc(t('confirmRemove', p.name))}">${esc(t('remove'))}</button>`);
+  }
   return `<div class="actions">${b.join('')}</div>`;
 }
 
@@ -640,12 +992,324 @@ async function openLogs(id) {
   }
 }
 
+/* ---------- 添加项目 ---------- */
+function field(id) { return document.getElementById(id); }
+function getVal(id) { const el = field(id); return el && typeof el.value === 'string' ? el.value : ''; }
+function setVal(id, value) { const el = field(id); if (el) el.value = value ?? ''; }
+
+/** 重建 select 选项；保留用户当前选择 */
+function fillSelect(id, items) {
+  const el = field(id);
+  if (!el) return;
+  const prev = el.value;
+  el.innerHTML = items
+    .map(([value, label]) => `<option value="${esc(value)}">${esc(label)}</option>`)
+    .join('');
+  if (prev && items.some(([v]) => v === prev)) el.value = prev;
+}
+
+/** 语言切换后重建下拉框文案（同时保留选中值） */
+function fillFormSelects() {
+  fillSelect('add-kind', Object.entries(I18N[lang].kinds));
+  fillSelect('add-stop-strategy', Object.entries(I18N[lang].stopMethods));
+  fillSelect('add-update-strategy', Object.entries(I18N[lang].updateMethods));
+}
+
+/** 按停止/更新方式显示对应输入框 */
+function syncAddForm() {
+  const stop = getVal('add-stop-strategy') || 'port';
+  field('add-stop-image-wrap').style.display = stop === 'procname' ? '' : 'none';
+  field('add-stop-command-wrap').style.display = stop === 'command' ? '' : 'none';
+  field('add-stop-args-wrap').style.display = stop === 'command' ? '' : 'none';
+
+  const upd = getVal('add-update-strategy') || 'none';
+  field('add-update-git-wrap').style.display = upd === 'git' ? '' : 'none';
+  field('add-update-command-wrap').style.display = upd === 'command' ? '' : 'none';
+  field('add-update-args-wrap').style.display = upd === 'command' ? '' : 'none';
+}
+
+function showAddError(list) {
+  const box = field('add-error');
+  if (!box) return;
+  const items = (list || []).filter(Boolean);
+  box.innerHTML = items.map((x) => `<div>${esc(x)}</div>`).join('');
+  box.style.display = items.length ? 'block' : 'none';
+}
+
+function resetAddForm() {
+  [
+    'add-name', 'add-id', 'add-start-command', 'add-start-args', 'add-port', 'add-url',
+    'add-stop-image', 'add-stop-command', 'add-stop-args',
+    'add-update-branch', 'add-update-command', 'add-update-args', 'add-notes',
+  ].forEach((id) => setVal(id, ''));
+  setVal('add-path', localStorage.getItem('gpi-add-path') || '');
+
+  fillFormSelects();
+  setVal('add-kind', 'node-service');
+  setVal('add-stop-strategy', 'port');
+  setVal('add-update-strategy', 'none');
+
+  const cands = field('add-candidates');
+  if (cands) { cands.innerHTML = ''; cands._cands = []; }
+  renderStartHints([]);
+  showAddError([]);
+  syncAddForm();
+}
+
+function renderStartHints(cands) {
+  const box = field('add-start-hints');
+  if (!box) return;
+  box._cands = Array.isArray(cands) ? cands : [];
+  if (!box._cands.length) { box.innerHTML = ''; return; }
+  box.innerHTML = `<span class="hint-label">${esc(t('detected'))}:</span>` + box._cands
+    .map((c, i) => `<button type="button" class="chip" data-start-index="${i}">${esc(c.label)}</button>`)
+    .join('');
+}
+
+function fillIfEmpty(id, value) {
+  if (value === undefined || value === null || value === '') return;
+  const el = field(id);
+  if (el && !el.value) el.value = value;
+}
+
+/** 把识别结果填进表单；force=false 时只填空字段，避免覆盖用户输入 */
+function applyDetection(d, force = false) {
+  if (!d || d.exists === false) return;
+  const put = force ? setVal : fillIfEmpty;
+
+  put('add-name', d.name);
+
+  // 类型/更新方式是强信号，且表单有默认值（node-service / none）。
+  // 如果按"只填空字段"处理，Python 项目会一直停在 Node 服务上，
+  // 所以这里直接采用识别结果；用户仍可在表单里改。
+  if (d.kind) setVal('add-kind', d.kind);
+  if (d.update) setVal('add-update-strategy', d.update);
+  if (d.update === 'git') fillIfEmpty('add-update-branch', 'main');
+
+  if (d.start) {
+    put('add-start-command', d.start.command);
+    put('add-start-args', (d.start.args || []).join(' '));
+  }
+  if (Array.isArray(d.ports) && d.ports.length) {
+    put('add-port', d.ports.join(', '));
+    put('add-url', `http://127.0.0.1:${d.ports[0]}`);
+  } else if (d.port) {
+    put('add-port', String(d.port));
+    put('add-url', `http://127.0.0.1:${d.port}`);
+  }
+
+  // 无端口但有 exe：默认按进程名停止，并填好进程名
+  if (!d.ports?.length && !d.port && Array.isArray(d.exeFiles) && d.exeFiles.length) {
+    setVal('add-stop-strategy', 'procname');
+    fillIfEmpty('add-stop-image', d.exeFiles[0]);
+  }
+
+  renderStartHints(d.startCandidates || (d.start ? [d.start] : []));
+  syncAddForm();
+}
+
+async function inspectPath(target, force = false) {
+  const p = String(target || '').trim();
+  if (!p) return null;
+  try {
+    const res = await fetch(`${API}/api/inspect?path=${encodeURIComponent(p)}`);
+    const data = await res.json();
+    if (data.exists === false) {
+      showAddError([data.error || t('inspectFail', p)]);
+      return null;
+    }
+    applyDetection(data, force);
+    return data;
+  } catch (err) {
+    showAddError([t('inspectFail', err.message)]);
+    return null;
+  }
+}
+
+function renderCandidates(list) {
+  const box = field('add-candidates');
+  if (!box) return;
+  box._cands = Array.isArray(list) ? list : [];
+  if (!box._cands.length) {
+    box.innerHTML = `<div class="hint-inline">${esc(t('noCandidates'))}</div>`;
+    return;
+  }
+  box.innerHTML = `<div class="hint-label">${esc(t('candidates'))}</div>` + box._cands
+    .map((c, i) => `
+      <div class="cand${c.managed ? ' managed' : ''}">
+        <div class="cand-main"><b>${esc(c.name)}</b><span class="cand-path">${esc(c.path)}</span></div>
+        <div class="cand-meta">${esc(c.kindLabel || c.kind || '')}${c.port ? ` · :${esc(c.port)}` : ''}${c.isRepo ? ' · git' : ''}</div>
+        <button type="button" data-cand-index="${i}" ${c.managed ? 'disabled' : ''}>${esc(c.managed ? t('alreadyManaged') : t('use'))}</button>
+      </div>`)
+    .join('');
+}
+
+async function scanFolders() {
+  const p = getVal('add-path').trim();
+  const btn = field('btn-scan');
+  if (btn) { btn.disabled = true; btn.textContent = t('scanning'); }
+  showAddError([]);
+  try {
+    const res = await fetch(`${API}/api/scan`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(p ? { root: p } : {}),
+    });
+    const data = await res.json();
+    if (data.ok === false) {
+      showAddError([data.error || data.message || t('scanFail', '')]);
+    } else {
+      renderCandidates(data.candidates || []);
+      if (p) await inspectPath(p, false);
+    }
+  } catch (err) {
+    showAddError([t('scanFail', err.message)]);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = t('scan'); }
+  }
+}
+
+function useCandidate(index) {
+  const list = field('add-candidates')?._cands || [];
+  const c = list[index];
+  if (!c) return;
+  setVal('add-path', c.path);
+  inspectPath(c.path, true);
+}
+
+/* ---------- 文件夹选择器 ---------- */
+let browseState = null;
+
+async function loadBrowse(target) {
+  try {
+    const res = await fetch(`${API}/api/browse${target ? `?path=${encodeURIComponent(target)}` : ''}`);
+    const data = await res.json();
+    browseState = data;
+
+    const pathEl = field('browse-path');
+    if (pathEl) pathEl.textContent = data.path || t('chooseDrive');
+    const up = field('browse-up');
+    if (up) up.disabled = !data.parent;
+    const select = field('browse-select');
+    if (select) select.disabled = !data.path || !!data.error;
+
+    const shortcuts = field('browse-shortcuts');
+    if (shortcuts) {
+      const labels = I18N[lang].shortcuts || {};
+      shortcuts.innerHTML = (data.shortcuts || [])
+        .map((s) => `<button type="button" class="chip" data-browse-path="${esc(s.path)}">${esc(labels[s.key] || s.label)}</button>`)
+        .join('');
+    }
+
+    const list = field('browse-list');
+    if (list) {
+      list.innerHTML = (data.entries || [])
+        .map((e) => `<button type="button" class="browse-item" data-browse-path="${esc(e.path)}">📁 ${esc(e.name)}</button>`)
+        .join('') || `<div class="hint-inline">${esc(data.error || t('noSubdirs'))}</div>`;
+    }
+  } catch (err) {
+    showToast(t('requestFail', err.message), false);
+  }
+}
+
+function openBrowse() {
+  field('browse-modal').classList.add('open');
+  loadBrowse(getVal('add-path').trim() || null);
+}
+
+function buildAddPayload() {
+  return {
+    name: getVal('add-name').trim(),
+    id: getVal('add-id').trim() || undefined,
+    path: getVal('add-path').trim(),
+    kind: getVal('add-kind') || 'node-service',
+    startCommand: getVal('add-start-command').trim(),
+    startArgs: getVal('add-start-args').trim(),
+    port: getVal('add-port').trim(),
+    url: getVal('add-url').trim() || undefined,
+    stopStrategy: getVal('add-stop-strategy') || 'port',
+    stopImageName: getVal('add-stop-image').trim(),
+    stopCommand: getVal('add-stop-command').trim(),
+    stopArgs: getVal('add-stop-args').trim(),
+    updateStrategy: getVal('add-update-strategy') || 'none',
+    updateBranch: getVal('add-update-branch').trim(),
+    updateCommand: getVal('add-update-command').trim(),
+    updateArgs: getVal('add-update-args').trim(),
+    notes: getVal('add-notes').trim() || undefined,
+  };
+}
+
+/** 前端先做一轮友好校验，后端仍会做最终校验 */
+function validateAddPayload(p) {
+  const errors = [];
+  if (!p.path) errors.push(t('needPath'));
+  if (!p.name) errors.push(t('needName'));
+  const passive = p.kind === 'cli-tool' || p.kind === 'observe-only';
+  if (!passive && !p.startCommand) errors.push(t('needStart'));
+  return errors;
+}
+
+async function submitAdd() {
+  const payload = buildAddPayload();
+  const localErrors = validateAddPayload(payload);
+  if (localErrors.length) { showAddError(localErrors); return; }
+
+  const btn = field('add-submit');
+  if (btn) { btn.disabled = true; btn.textContent = t('adding'); }
+  showAddError([]);
+  try {
+    const res = await fetch(`${API}/api/projects`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (data.ok === false) {
+      showAddError(data.errors?.length ? data.errors : [data.message || t('addFail')]);
+      showToast(data.message || t('addFail'), false);
+      return;
+    }
+    localStorage.setItem('gpi-add-path', payload.path);
+    field('add-modal').classList.remove('open');
+    showToast(t('addOk', data.project?.name ?? payload.name), true);
+    await refresh();
+  } catch (err) {
+    showAddError([t('requestFail', err.message)]);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = t('add'); }
+  }
+}
+
+async function removeProject(id) {
+  const p = snapshot.get(id)?.project;
+  if (!confirm(t('confirmRemove', p?.name ?? id))) return;
+
+  busy.add(id); errors.delete(id); render_now();
+  try {
+    const res = await fetch(`${API}/api/projects/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.ok === false) {
+      errors.set(id, data.message || t('opFail'));
+      showToast(data.message || t('opFail'), false);
+    } else {
+      snapshot.delete(id); errors.delete(id);
+      showToast(t('removeOk', data.removed?.name ?? p?.name ?? id), true);
+    }
+  } catch (err) {
+    showToast(t('requestFail', err.message), false);
+  } finally {
+    busy.delete(id);
+    await refresh();
+  }
+}
+
 /* ---------- 事件 ---------- */
 grid.addEventListener('click', (e) => {
   const btn = e.target.closest('button[data-act]');
   if (!btn || btn.disabled) return;
   const { act: action, id } = btn.dataset;
   if (action === 'logs') openLogs(id);
+  else if (action === 'remove') removeProject(id);
   else act(action, id);
 });
 document.getElementById('btn-update-all').addEventListener('click', updateAll);
@@ -653,7 +1317,80 @@ document.getElementById('btn-start-all').addEventListener('click', () => bulkAct
 document.getElementById('btn-stop-all').addEventListener('click', () => bulkAction('stop'));
 document.getElementById('drawer-close').addEventListener('click', () => drawer.classList.remove('open'));
 drawer.addEventListener('click', (e) => { if (e.target === drawer) drawer.classList.remove('open'); });
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') drawer.classList.remove('open'); });
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  drawer.classList.remove('open');
+  field('add-modal').classList.remove('open');
+  field('browse-modal').classList.remove('open');
+});
+
+/* —— 添加项目弹窗 —— */
+field('btn-add').addEventListener('click', () => {
+  resetAddForm();
+  field('add-modal').classList.add('open');
+});
+field('add-close').addEventListener('click', () => field('add-modal').classList.remove('open'));
+field('add-cancel').addEventListener('click', () => field('add-modal').classList.remove('open'));
+field('add-submit').addEventListener('click', submitAdd);
+field('btn-scan').addEventListener('click', scanFolders);
+field('btn-browse').addEventListener('click', openBrowse);
+field('add-path').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    inspectPath(getVal('add-path').trim(), true);
+  }
+});
+field('add-path').addEventListener('blur', () => {
+  const p = getVal('add-path').trim();
+  if (p) inspectPath(p, false);
+});
+field('add-stop-strategy').addEventListener('change', syncAddForm);
+field('add-update-strategy').addEventListener('change', syncAddForm);
+field('add-port').addEventListener('input', () => {
+  const first = getVal('add-port').split(/[,\s;]+/).find(Boolean);
+  const urlEl = field('add-url');
+  if (first && urlEl && !urlEl.value) urlEl.value = `http://127.0.0.1:${first}`;
+});
+field('add-start-hints').addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-start-index]');
+  if (!btn) return;
+  const cands = field('add-start-hints')._cands || [];
+  const c = cands[Number(btn.dataset.startIndex)];
+  if (!c) return;
+  setVal('add-start-command', c.command);
+  setVal('add-start-args', (c.args || []).join(' '));
+});
+field('add-candidates').addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-cand-index]');
+  if (!btn || btn.disabled) return;
+  useCandidate(Number(btn.dataset.candIndex));
+});
+
+/* —— 文件夹选择器 —— */
+field('browse-close').addEventListener('click', () => field('browse-modal').classList.remove('open'));
+field('browse-cancel').addEventListener('click', () => field('browse-modal').classList.remove('open'));
+field('browse-up').addEventListener('click', () => {
+  if (browseState?.parent) loadBrowse(browseState.parent);
+});
+field('browse-select').addEventListener('click', () => {
+  if (!browseState?.path) return;
+  setVal('add-path', browseState.path);
+  field('browse-modal').classList.remove('open');
+  inspectPath(browseState.path, true);
+});
+field('browse-list').addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-browse-path]');
+  if (btn) loadBrowse(btn.dataset.browsePath);
+});
+field('browse-shortcuts').addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-browse-path]');
+  if (btn) loadBrowse(btn.dataset.browsePath);
+});
+for (const id of ['add-modal', 'browse-modal']) {
+  field(id).addEventListener('click', (e) => {
+    if (e.target === field(id)) field(id).classList.remove('open');
+  });
+}
 
 document.getElementById('btn-lang').addEventListener('click', () => {
   lang = lang === 'zh' ? 'en' : 'zh';

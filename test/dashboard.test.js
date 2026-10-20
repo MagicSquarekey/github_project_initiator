@@ -92,11 +92,11 @@ function loadDashboard() {
   const keys = Object.keys(sandbox);
   const fn = new Function(
     ...keys,
-    `${body}\nreturn { render, errors, busy, snapshot, applyLang, applyTheme, I18N, t };`,
+    `${body}\nreturn { render, errors, busy, snapshot, applyLang, applyTheme, I18N, t,
+      field, buildAddPayload, validateAddPayload, applyDetection, syncAddForm, resetAddForm };`,
   );
   return { ...fn(...keys.map((k) => sandbox[k])), grid };
 }
-
 const baseGit = {
   isRepo: true, branch: 'main', dirty: false, behind: 0, ahead: 0,
   remotes: ['origin'], head: null,
@@ -445,4 +445,120 @@ test('日志抽屉存在且可关闭', () => {
   const html = fs.readFileSync(HTML_PATH, 'utf8');
   assert.match(html, /id="drawer"/);
   assert.match(html, /id="drawer-close"/);
+});
+
+/* ---------------- 添加项目 ---------------- */
+
+test('添加项目入口与弹窗存在', () => {
+  const html = fs.readFileSync(HTML_PATH, 'utf8');
+  assert.match(html, /id="btn-add"/);
+  assert.match(html, /id="add-modal"/);
+  assert.match(html, /id="add-path"/);
+  assert.match(html, /id="btn-browse"/);
+  assert.match(html, /id="btn-scan"/);
+  assert.match(html, /id="add-submit"/);
+  assert.match(html, /id="browse-modal"/);
+  assert.match(html, /id="browse-list"/);
+});
+
+test('普通项目有移除按钮，管理器自身没有', () => {
+  const normal = loadDashboard();
+  normal.render([proj({ id: 'a', name: 'A' })]);
+  assert.match(normal.grid.children.join(''), /data-act="remove" data-id="a"/);
+
+  const self = loadDashboard();
+  self.render([proj({ id: 'manager', name: 'M', self: true, kind: 'observe-only' })]);
+  assert.doesNotMatch(self.grid.children.join(''), /data-act="remove"/);
+});
+
+test('添加表单：识别结果只填空字段，force 时覆盖', () => {
+  const { applyDetection, field } = loadDashboard();
+
+  field('add-name').value = '手填名称';
+  applyDetection({
+    exists: true,
+    name: '识别名称',
+    kind: 'node-service',
+    start: { command: 'cmd.exe', args: ['/c', 'x.bat'] },
+    ports: [4000],
+    update: 'none',
+  }, false);
+
+  assert.equal(field('add-name').value, '手填名称', '已有输入不应被覆盖');
+  assert.equal(field('add-start-command').value, 'cmd.exe');
+  assert.equal(field('add-start-args').value, '/c x.bat');
+  assert.equal(field('add-port').value, '4000');
+  assert.equal(field('add-url').value, 'http://127.0.0.1:4000');
+
+  applyDetection({
+    exists: true,
+    name: '覆盖名称',
+    start: { command: 'npm', args: ['start'] },
+    ports: [5000],
+    update: 'git',
+  }, true);
+
+  assert.equal(field('add-name').value, '覆盖名称');
+  assert.equal(field('add-start-command').value, 'npm');
+  assert.equal(field('add-port').value, '5000');
+  assert.equal(field('add-update-strategy').value, 'git');
+
+  // 类型/更新方式是强信号：即使表单已有默认值也要采用识别结果
+  applyDetection({
+    exists: true,
+    kind: 'python-service',
+    update: 'none',
+    ports: [6000],
+  }, false);
+  assert.equal(field('add-kind').value, 'python-service');
+  assert.equal(field('add-update-strategy').value, 'none');
+
+  // 无端口但有 exe：默认按进程名停止并填好进程名
+  applyDetection({
+    exists: true,
+    kind: 'desktop-app',
+    exeFiles: ['game.exe'],
+    ports: [],
+    update: 'none',
+  }, false);
+  assert.equal(field('add-stop-strategy').value, 'procname');
+  assert.equal(field('add-stop-image').value, 'game.exe');
+});
+
+test('添加表单：payload 组装与前端校验', () => {
+  const { field, buildAddPayload, validateAddPayload } = loadDashboard();
+
+  field('add-name').value = 'Demo';
+  field('add-path').value = 'C:/tmp/demo';
+  field('add-kind').value = 'node-service';
+  field('add-start-command').value = 'cmd.exe';
+  field('add-start-args').value = '/c start.bat';
+  field('add-port').value = '45678';
+  field('add-stop-strategy').value = 'port';
+  field('add-update-strategy').value = 'none';
+
+  const payload = buildAddPayload();
+  assert.equal(payload.name, 'Demo');
+  assert.equal(payload.path, 'C:/tmp/demo');
+  assert.equal(payload.startArgs, '/c start.bat');
+  assert.equal(payload.port, '45678');
+  assert.deepEqual(validateAddPayload(payload), []);
+
+  // 服务类项目缺启动命令 → 前端先拦
+  field('add-start-command').value = '';
+  assert.match(validateAddPayload(buildAddPayload()).join(), /启动命令/);
+
+  // 仅监测类型允许没有启动命令
+  field('add-kind').value = 'observe-only';
+  assert.deepEqual(validateAddPayload(buildAddPayload()), []);
+});
+
+test('添加表单：多端口输入保留原样，由后端解析', () => {
+  const { field, buildAddPayload } = loadDashboard();
+  field('add-name').value = 'Multi';
+  field('add-path').value = 'C:/tmp/multi';
+  field('add-start-command').value = 'cmd.exe';
+  field('add-port').value = '8686, 5173';
+
+  assert.equal(buildAddPayload().port, '8686, 5173');
 });

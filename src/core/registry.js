@@ -13,11 +13,22 @@ import { logger } from '../util/logger.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
+/** 默认注册表路径；GPI_REGISTRY_FILE 可指向另一份配置（测试/多套环境） */
 const REGISTRY_PATH = path.join(ROOT, 'data', 'registry.json');
-/** 示例配置：入库、可移植；真正的 registry.json 含本机路径，不入库 */
-const EXAMPLE_PATH = path.join(ROOT, 'data', 'registry.example.json');
 
-const VALID_KINDS = [
+/**
+ * 当前生效的注册表路径。
+ *
+ * 做成函数而不是常量：测试可以在进程内切换 GPI_REGISTRY_FILE，
+ * 不会误写到用户的 data/registry.json。
+ *
+ * @returns {string}
+ */
+export function registryPath() {
+  return process.env.GPI_REGISTRY_FILE || REGISTRY_PATH;
+}
+
+export const VALID_KINDS = [
   'node-service',
   'python-service',
   'java-service',
@@ -26,8 +37,8 @@ const VALID_KINDS = [
   'desktop-app',
   'observe-only',
 ];
-const VALID_STOP_STRATEGIES = ['port', 'procname', 'command', 'none'];
-const VALID_UPDATE_STRATEGIES = ['git', 'git-fork', 'command', 'release', 'none'];
+export const VALID_STOP_STRATEGIES = ['port', 'procname', 'command', 'none'];
+export const VALID_UPDATE_STRATEGIES = ['git', 'git-fork', 'command', 'release', 'none'];
 
 /** 管理器自身端口，注册表校验时用来检测被管项目是否冲突 */
 export const MANAGER_PORT = 8780;
@@ -40,9 +51,9 @@ export const SELF_PROJECT_NAME = 'github_project_initiator';
 
 /**
  * 用户可见版本号（带 V 前缀）。
- * package.json 的 version 字段按 npm 规范只能写 0.0.1，两者语义一致。
+ * package.json 的 version 字段按 npm 规范不带 V 前缀，两者语义一致。
  */
-export const VERSION = 'V0.0.1';
+export const VERSION = 'V0.0.2';
 
 /** 当前平台是否受支持（停止能力依赖 netstat/taskkill，仅 Windows 完整可用） */
 export const PLATFORM_SUPPORTED = process.platform === 'win32';
@@ -151,6 +162,9 @@ export function buildSelfProject() {
     path: ROOT,
     enabled: true,
     self: true,
+    // 内部标记：只有 loadRegistry() 动态注入的条目才带它。
+    // saveRegistry() 据此剥离合成条目，而不会误删用户手写的 self 条目。
+    _syntheticSelf: true,
     kind: 'observe-only',
     start: { command: null, args: [] },
     stop: { strategy: 'none' },
@@ -433,25 +447,33 @@ export function validateRegistry(data) {
 }
 
 /**
- * 读取注册表。校验失败时抛出带完整错误列表的 Error。
+ * 读取磁盘上的原始注册表：不含合成 self 条目、不展开 ~ / ${ENV}。
+ *
+ * 新增/删除项目必须基于原始数据回写，否则 loadRegistry() 展开后的绝对路径
+ * 会把用户手写的 ~ / ${ENV} 固化成本机路径。
  *
  * @returns {{ version: number, projects: any[] }}
  */
-export function loadRegistry() {
-  // 首次运行（开源用户克隆后）：从示例配置引导，避免直接报"文件不存在"
-  if (!fs.existsSync(REGISTRY_PATH) && fs.existsSync(EXAMPLE_PATH)) {
-    fs.mkdirSync(path.dirname(REGISTRY_PATH), { recursive: true });
-    fs.copyFileSync(EXAMPLE_PATH, REGISTRY_PATH);
-    logger.info('未找到 data/registry.json，已从 registry.example.json 创建', {
-      hint: '按本机实际路径修改后重启',
+export function loadRegistryRaw() {
+  const file = registryPath();
+
+  // 首次运行（开源用户克隆后）：创建空注册表。
+  // 不复制 registry.example.json——那份示例是作者本机的项目清单，
+  // 对别人的机器没有意义；看板的「添加项目」会引导用户录入自己的项目。
+  if (!fs.existsSync(file)) {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, `${JSON.stringify({ version: 1, projects: [] }, null, 2)}\n`, 'utf8');
+    logger.info('未找到注册表，已创建空注册表', {
+      file,
+      hint: '打开看板点「添加项目」',
     });
   }
 
   let raw;
   try {
-    raw = fs.readFileSync(REGISTRY_PATH, 'utf8');
+    raw = fs.readFileSync(file, 'utf8');
   } catch (err) {
-    throw new Error(`无法读取注册表 ${REGISTRY_PATH}：${err.message}`);
+    throw new Error(`无法读取注册表 ${file}：${err.message}`);
   }
 
   let data;
@@ -465,6 +487,18 @@ export function loadRegistry() {
   if (!valid) {
     throw new Error(`注册表校验失败（共 ${errors.length} 处）：\n  - ${errors.join('\n  - ')}`);
   }
+  return data;
+}
+
+/**
+ * 读取注册表（业务层入口）。
+ *
+ * 在原始数据之上注入管理器自身条目，并展开路径占位符。
+ *
+ * @returns {{ version: number, projects: any[] }}
+ */
+export function loadRegistry() {
+  const data = loadRegistryRaw();
 
   // 管理器自身也纳入监测：动态注入，不落盘。
   // 用户若已手工声明 self 条目（或占用 manager 这个 id），尊重用户的定义，避免重复。
@@ -485,17 +519,20 @@ export function saveRegistry(data) {
   if (!valid) {
     throw new Error(`拒绝保存：注册表校验失败：${errors.join('；')}`);
   }
-  // 合成条目不属于用户配置：即使调用方把 loadRegistry() 的结果原样传进来，
-  // 也不能把它写进 registry.json。
+  // 只剥离 loadRegistry() 动态注入的合成条目（带 _syntheticSelf 标记）。
+  // 用户手写的 self 条目属于用户配置，必须原样保留。
   const persisted = {
     ...data,
-    projects: (Array.isArray(data.projects) ? data.projects : []).filter((p) => p?.self !== true),
+    projects: (Array.isArray(data.projects) ? data.projects : []).filter(
+      (p) => p?._syntheticSelf !== true,
+    ),
   };
-  fs.mkdirSync(path.dirname(REGISTRY_PATH), { recursive: true });
-  const tmp = `${REGISTRY_PATH}.tmp`;
+  const file = registryPath();
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const tmp = `${file}.tmp`;
   fs.writeFileSync(tmp, `${JSON.stringify(persisted, null, 2)}\n`, 'utf8');
-  fs.renameSync(tmp, REGISTRY_PATH);
-  logger.debug('注册表已保存', { projects: persisted.projects.length });
+  fs.renameSync(tmp, file);
+  logger.debug('注册表已保存', { file, projects: persisted.projects.length });
 }
 
 /**

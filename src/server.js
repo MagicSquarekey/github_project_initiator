@@ -11,7 +11,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { MANAGER_PORT, VERSION } from './core/registry.js';
 import * as projectsApi from './api/projects.js';
+import * as manageApi from './api/manage.js';
 import { scanForProjects } from './api/scan.js';
+import { inspectDirectory } from './api/inspect.js';
+import { browseDirectories } from './api/browse.js';
 import { logger } from './util/logger.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -28,10 +31,9 @@ export function createServer() {
     const url = new URL(req.url ?? '/', `http://127.0.0.1:${MANAGER_PORT}`);
     const pathname = decodeURIComponent(url.pathname);
 
-    // CORS：看板可能从 file:// 或其他端口打开
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    // CORS：只放行本机来源（看板自身、file:// 打开、本地其他端口开发）。
+    // 新增的目录浏览接口会暴露目录结构，不能再对任意网站开放。
+    setCors(req, res);
 
     if (req.method === 'OPTIONS') {
       res.writeHead(204).end();
@@ -86,6 +88,50 @@ async function handleApi(req, res, pathname, url) {
     return;
   }
 
+  // POST /api/projects —— 添加监测项目（写 registry.json）
+  if (method === 'POST' && pathname === '/api/projects') {
+    const body = await readBody(req);
+    if (body === null) {
+      sendJson(res, 400, { ok: false, error: 'BAD_REQUEST', message: '请求体不是合法 JSON' });
+      return;
+    }
+    try {
+      const project = manageApi.addProject(body);
+      sendJson(res, 201, { ok: true, project, message: `已添加 ${project.name}` });
+    } catch (err) {
+      if (err.code === 'INVALID_PROJECT') {
+        sendJson(res, 400, {
+          ok: false,
+          error: err.code,
+          message: err.message,
+          errors: err.errors ?? [err.message],
+        });
+        return;
+      }
+      throw err;
+    }
+    return;
+  }
+
+  // GET /api/inspect?path=... —— 识别单个目录，供添加表单预填
+  if (method === 'GET' && pathname === '/api/inspect') {
+    const target = url.searchParams.get('path');
+    if (!target) {
+      sendJson(res, 400, { ok: false, error: 'BAD_REQUEST', message: '缺少 path 参数' });
+      return;
+    }
+    const info = inspectDirectory(target);
+    sendJson(res, 200, { ok: info.exists !== false, ...info });
+    return;
+  }
+
+  // GET /api/browse?path=... —— 文件夹选择器（只列目录）
+  if (method === 'GET' && pathname === '/api/browse') {
+    const target = url.searchParams.get('path') ?? '';
+    sendJson(res, 200, { ok: true, ...browseDirectories(target) });
+    return;
+  }
+
   // POST /api/update-all —— 批量更新
   if (method === 'POST' && pathname === '/api/update-all') {
     sendJson(res, 200, await projectsApi.updateAll());
@@ -95,9 +141,16 @@ async function handleApi(req, res, pathname, url) {
   // POST /api/scan —— 目录扫描
   if (method === 'POST' && pathname === '/api/scan') {
     const body = await readBody(req);
-    const root = body?.root;
-    const result = await scanForProjects(root);
-    sendJson(res, 200, result);
+    if (body === null) {
+      sendJson(res, 400, { ok: false, error: 'BAD_REQUEST', message: '请求体不是合法 JSON' });
+      return;
+    }
+    const depth = Number(body?.maxDepth);
+    const result = await scanForProjects(
+      body?.root,
+      Number.isInteger(depth) && depth >= 0 && depth <= 5 ? depth : 2,
+    );
+    sendJson(res, 200, { ok: !result.error, ...result });
     return;
   }
 
@@ -109,6 +162,29 @@ async function handleApi(req, res, pathname, url) {
 
     if (method === 'GET' && !action) {
       sendJson(res, 200, await projectsApi.describeOne(id));
+      return;
+    }
+
+    // DELETE /api/projects/:id —— 从看板移除（只改 registry，不删文件）
+    if (method === 'DELETE' && !action) {
+      try {
+        const removed = manageApi.removeProject(id);
+        sendJson(res, 200, { ok: true, removed, message: `已移除 ${removed.name}` });
+      } catch (err) {
+        if (err.code === 'NOT_FOUND') {
+          sendJson(res, 404, { ok: false, error: err.code, message: err.message });
+          return;
+        }
+        if (err.code === 'FORBIDDEN') {
+          sendJson(res, 403, { ok: false, error: err.code, message: err.message });
+          return;
+        }
+        if (err.code === 'INVALID_PROJECT') {
+          sendJson(res, 400, { ok: false, error: err.code, message: err.message });
+          return;
+        }
+        throw err;
+      }
       return;
     }
 
@@ -137,6 +213,39 @@ async function handleApi(req, res, pathname, url) {
   }
 
   sendJson(res, 404, { ok: false, error: 'NOT_FOUND', message: `未知端点：${method} ${pathname}` });
+}
+
+/**
+ * 只给本机来源发 CORS 头。
+ *
+ * 为什么收紧：`Access-Control-Allow-Origin: *` 会让任意网站用 fetch 读取
+ * /api/browse 的目录结构、甚至 POST 添加项目。管理器没有鉴权，
+ * 所以必须把"本机"作为唯一信任边界。
+ *
+ * @param {http.IncomingMessage} req
+ * @param {http.ServerResponse} res
+ */
+function setCors(req, res) {
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  const origin = req.headers.origin;
+  if (!origin) return; // 同源请求 / curl 不需要 CORS
+
+  let allowed = origin === 'null'; // file:// 打开看板时浏览器发送 Origin: null
+  if (!allowed) {
+    try {
+      const host = new URL(origin).hostname;
+      allowed = ['127.0.0.1', 'localhost', '[::1]', '::1'].includes(host);
+    } catch {
+      allowed = false;
+    }
+  }
+
+  if (allowed) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+  }
 }
 
 /**

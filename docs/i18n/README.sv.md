@@ -27,6 +27,7 @@ Kräver Node.js 20+. Windows stöds fullt ut; Linux/macOS använder det inbyggda
 - **Starta / stoppa / starta om** — använder varje projekts eget startskript.
 - **Uppdatering med ett klick** — sparbar tillfälligt ej committade ändringar, uppdaterar och återställer dem; rullar tillbaka vid fel.
 - **Vilken stack som helst** — Next.js, FastAPI, Go-binärer, Godot, pygame och pip-tjänster i en tabell.
+- **Lägg till projekt från instrumentpanelen** — välj en mapp; startkommando och port identifieras automatiskt, ingen JSON-redigering.
 - **Tvåspråkigt gränssnitt och ljust/mörkt tema** — växlas i sidhuvudet, sparas lokalt.
 - **Endast startare** — kör aldrig git init och skriver inte i hanterade projekt.
 
@@ -54,4 +55,4 @@ Kräver Node.js 20+. Windows stöds fullt ut; Linux/macOS använder det inbyggda
 
 - [Design och arkitektur (kinesiska)](../design.md)
 - [Detaljerad README (kinesiska)](../README.full.zh-CN.md)
-- `npm test` — 111 tester: parsning, konfigurationsvalidering, git-flöden och instrumentpanelsrendering
+- `npm test` — 190 tester: parsning, konfigurationsvalidering, git-flöden och instrumentpanelsrendering

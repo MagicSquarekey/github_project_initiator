@@ -8,6 +8,7 @@
       ["Start / stop / restart", "reuses each project's own start script, so its original environment handling is preserved."],
       ["One-click update", "automatically stashes uncommitted changes, pulls, then restores them; failures roll back."],
       ["Any stack", "Next.js, FastAPI, Go binaries, Godot, pygame and pip-installed services in one table."],
+      ["Add projects in the dashboard", "pick a folder; the start command and port are detected automatically, no JSON editing."],
       ["Bilingual UI, light/dark", "Chinese/English toggle and theme switch, remembered locally."],
       ["Launcher only", "never runs git init in, writes to, or restructures the managed projects."]
     ],
@@ -25,7 +26,7 @@
     "docs": "Documentation",
     "designLabel": "Design and architecture (Chinese)",
     "fullLabel": "Detailed README (Chinese)",
-    "testsLabel": "111 tests: parsing, config validation, git flows, dashboard rendering"
+    "testsLabel": "190 tests: parsing, config validation, git flows, dashboard rendering"
   },
   "zh-CN": {
     "name": "简体中文",
@@ -36,6 +37,7 @@
       ["启动 / 停止 / 重启", "复用项目自带的启动脚本，保留其原有的环境处理逻辑。"],
       ["一键更新", "自动暂存未提交改动，拉取后恢复；失败则回滚。"],
       ["任意技术栈", "Next.js、FastAPI、Go 二进制、Godot、pygame 与 pip 服务同表管理。"],
+      ["看板内添加项目", "选择项目目录即可自动识别启动命令与端口，无需手改 JSON。"],
       ["中英双语 + 明暗主题", "顶栏切换，偏好本地记住。"],
       ["只做启动器", "绝不在被管项目里 git init、写入文件或改变结构。"]
     ],
@@ -53,7 +55,7 @@
     "docs": "文档",
     "designLabel": "设计与架构（中文）",
     "fullLabel": "详细中文说明",
-    "testsLabel": "111 项测试：解析、配置校验、git 流程、看板渲染"
+    "testsLabel": "190 项测试：解析、配置校验、git 流程、看板渲染"
   },
   "zh-TW": {
     "name": "繁體中文",
@@ -64,6 +66,7 @@
       ["啟動 / 停止 / 重新啟動", "沿用專案自帶的啟動腳本，保留其原有的環境處理邏輯。"],
       ["一鍵更新", "自動暫存未提交的變更，拉取後還原；失敗則回滾。"],
       ["任意技術棧", "Next.js、FastAPI、Go 執行檔、Godot、pygame 與 pip 服務同表管理。"],
+      ["看板內新增專案", "選擇專案目錄即可自動辨識啟動命令與連接埠，無需手動修改 JSON。"],
       ["中英雙語 + 明暗主題", "頂欄切換，偏好本機記住。"],
       ["只做啟動器", "絕不在被管專案裡 git init、寫入檔案或改變結構。"]
     ],
@@ -81,7 +84,7 @@
     "docs": "文件",
     "designLabel": "設計與架構（中文）",
     "fullLabel": "詳細中文說明",
-    "testsLabel": "111 項測試：解析、設定驗證、git 流程、看板渲染"
+    "testsLabel": "190 項測試：解析、設定驗證、git 流程、看板渲染"
   },
   "ja": {
     "name": "日本語",
@@ -92,6 +95,7 @@
       ["起動 / 停止 / 再起動", "各プロジェクトの起動スクリプトをそのまま利用します。"],
       ["ワンクリック更新", "未コミットの変更を自動 stash し、更新後に復元。失敗時はロールバック。"],
       ["あらゆるスタック", "Next.js、FastAPI、Go バイナリ、Godot、pygame、pip サービスを同じ表で。"],
+      ["ダッシュボードからプロジェクト追加", "フォルダーを選ぶだけで起動コマンドとポートを自動検出。JSON 編集は不要です。"],
       ["中英バイリンガル + ライト/ダーク", "ヘッダーで切替、設定はローカル保存。"],
       ["ランチャー専用", "管理対象で git init やファイル書き込み、構造変更は行いません。"]
     ],
@@ -109,7 +113,7 @@
     "docs": "ドキュメント",
     "designLabel": "設計とアーキテクチャ（中国語）",
     "fullLabel": "詳細な説明（中国語）",
-    "testsLabel": "111 件のテスト：パース、設定検証、git フロー、ダッシュボード描画"
+    "testsLabel": "190 件のテスト：パース、設定検証、git フロー、ダッシュボード描画"
   },
   "ko": {
     "name": "한국어",
@@ -120,6 +124,7 @@
       ["시작 / 중지 / 재시작", "각 프로젝트의 기존 시작 스크립트를 그대로 사용."],
       ["원클릭 업데이트", "커밋되지 않은 변경을 자동 stash 후 업데이트하고 복원. 실패 시 롤백."],
       ["어떤 스택이든", "Next.js, FastAPI, Go 바이너리, Godot, pygame, pip 서비스를 한 표에."],
+      ["대시보드에서 프로젝트 추가", "폴더를 선택하면 시작 명령과 포트를 자동으로 감지합니다. JSON 편집이 필요 없습니다."],
       ["중/영 이중 언어 + 라이트/다크", "헤더에서 전환, 설정은 로컬 저장."],
       ["런처 전용", "관리 대상에서 git init, 파일 쓰기, 구조 변경을 하지 않습니다."]
     ],
@@ -137,7 +142,7 @@
     "docs": "문서",
     "designLabel": "설계 및 아키텍처(중국어)",
     "fullLabel": "상세 설명(중국어)",
-    "testsLabel": "111개 테스트: 파싱, 설정 검증, git 흐름, 대시보드 렌더링"
+    "testsLabel": "190개 테스트: 파싱, 설정 검증, git 흐름, 대시보드 렌더링"
   },
   "es": {
     "name": "Español",
@@ -148,6 +153,7 @@
       ["Iniciar / detener / reiniciar", "reutiliza el script de inicio propio de cada proyecto."],
       ["Actualización con un clic", "guarda temporalmente los cambios sin confirmar, actualiza y los restaura; si falla, revierte."],
       ["Cualquier stack", "Next.js, FastAPI, binarios Go, Godot, pygame y servicios pip en una sola tabla."],
+      ["Añadir proyectos desde el panel", "elige una carpeta y se detectan automáticamente el comando de inicio y el puerto, sin editar JSON."],
       ["Interfaz bilingüe y tema claro/oscuro", "cambio desde la cabecera, recordado localmente."],
       ["Solo lanzador", "nunca ejecuta git init ni escribe en los proyectos gestionados."]
     ],
@@ -165,6 +171,6 @@
     "docs": "Documentación",
     "designLabel": "Diseño y arquitectura (chino)",
     "fullLabel": "README detallado (chino)",
-    "testsLabel": "111 pruebas: análisis, validación de configuración, flujos git y renderizado del panel"
+    "testsLabel": "190 pruebas: análisis, validación de configuración, flujos git y renderizado del panel"
   }
 }

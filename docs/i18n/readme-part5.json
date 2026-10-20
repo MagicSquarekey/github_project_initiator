@@ -8,6 +8,7 @@
       ["Starta / stoppa / starta om", "använder varje projekts eget startskript."],
       ["Uppdatering med ett klick", "sparbar tillfälligt ej committade ändringar, uppdaterar och återställer dem; rullar tillbaka vid fel."],
       ["Vilken stack som helst", "Next.js, FastAPI, Go-binärer, Godot, pygame och pip-tjänster i en tabell."],
+      ["Lägg till projekt från instrumentpanelen", "välj en mapp; startkommando och port identifieras automatiskt, ingen JSON-redigering."],
       ["Tvåspråkigt gränssnitt och ljust/mörkt tema", "växlas i sidhuvudet, sparas lokalt."],
       ["Endast startare", "kör aldrig git init och skriver inte i hanterade projekt."]
     ],
@@ -25,7 +26,7 @@
     "docs": "Dokumentation",
     "designLabel": "Design och arkitektur (kinesiska)",
     "fullLabel": "Detaljerad README (kinesiska)",
-    "testsLabel": "111 tester: parsning, konfigurationsvalidering, git-flöden och instrumentpanelsrendering"
+    "testsLabel": "190 tester: parsning, konfigurationsvalidering, git-flöden och instrumentpanelsrendering"
   },
   "cs": {
     "name": "Čeština",
@@ -36,6 +37,7 @@
       ["Spustit / zastavit / restartovat", "používá vlastní spouštěcí skript každého projektu."],
       ["Aktualizace jedním kliknutím", "dočasně uloží necommitnuté změny, aktualizuje a poté je obnoví; při chybě vrátí zpět."],
       ["Jakýkoli stack", "Next.js, FastAPI, binárky Go, Godot, pygame a pip služby v jedné tabulce."],
+      ["Přidávání projektů z panelu", "vyberte složku; příkaz pro spuštění a port se rozpoznají automaticky, bez úprav JSON."],
       ["Dvojjazyčné UI a světlý/tmavý režim", "přepínání v záhlaví, ukládá se lokálně."],
       ["Pouze spouštěč", "nikdy nespouští git init ani nezapisuje do spravovaných projektů."]
     ],
@@ -53,7 +55,7 @@
     "docs": "Dokumentace",
     "designLabel": "Design a architektura (čínsky)",
     "fullLabel": "Podrobný README (čínsky)",
-    "testsLabel": "111 testů: parsování, validace konfigurace, git toky a vykreslování panelu"
+    "testsLabel": "190 testů: parsování, validace konfigurace, git toky a vykreslování panelu"
   },
   "ro": {
     "name": "Română",
@@ -64,6 +66,7 @@
       ["Pornire / oprire / repornire", "folosește scriptul de pornire propriu fiecărui proiect."],
       ["Actualizare cu un clic", "salvează temporar modificările neconfirmate, actualizează și le restaurează; la eroare face rollback."],
       ["Orice stack", "Next.js, FastAPI, binare Go, Godot, pygame și servicii pip într-un singur tabel."],
+      ["Adăugarea proiectelor din panou", "alege un folder; comanda de pornire și portul sunt detectate automat, fără editare JSON."],
       ["Interfață bilingvă și temă deschisă/închisă", "comutare din antet, memorată local."],
       ["Doar launcher", "nu rulează niciodată git init și nu scrie în proiectele gestionate."]
     ],
@@ -81,7 +84,7 @@
     "docs": "Documentație",
     "designLabel": "Design și arhitectură (în chineză)",
     "fullLabel": "README detaliat (în chineză)",
-    "testsLabel": "111 teste: parsare, validarea configurației, fluxuri git și randarea panoului"
+    "testsLabel": "190 teste: parsare, validarea configurației, fluxuri git și randarea panoului"
   },
   "el": {
     "name": "Ελληνικά",
@@ -92,6 +95,7 @@
       ["Εκκίνηση / διακοπή / επανεκκίνηση", "χρησιμοποιεί το δικό του σενάριο εκκίνησης κάθε έργου."],
       ["Ενημέρωση με ένα κλικ", "αποθηκεύει προσωρινά τις μη καταχωρημένες αλλαγές, ενημερώνει και τις επαναφέρει· σε αποτυχία κάνει rollback."],
       ["Οποιαδήποτε στοίβα", "Next.js, FastAPI, δυαδικά Go, Godot, pygame και υπηρεσίες pip σε έναν πίνακα."],
+      ["Προσθήκη έργων από τον πίνακα", "επιλέξτε φάκελο· η εντολή εκκίνησης και η θύρα εντοπίζονται αυτόματα, χωρίς επεξεργασία JSON."],
       ["Δίγλωσσο UI και φωτεινό/σκοτεινό θέμα", "εναλλαγή από την κεφαλίδα, απομνημόνευση τοπικά."],
       ["Μόνο εκκινητής", "δεν εκτελεί ποτέ git init ούτε γράφει στα διαχειριζόμενα έργα."]
     ],
@@ -109,7 +113,7 @@
     "docs": "Τεκμηρίωση",
     "designLabel": "Σχεδιασμός και αρχιτεκτονική (στα κινεζικά)",
     "fullLabel": "Λεπτομερές README (στα κινεζικά)",
-    "testsLabel": "111 δοκιμές: ανάλυση, επικύρωση διαμόρφωσης, ροές git και απόδοση πίνακα"
+    "testsLabel": "190 δοκιμές: ανάλυση, επικύρωση διαμόρφωσης, ροές git και απόδοση πίνακα"
   },
   "hu": {
     "name": "Magyar",
@@ -120,6 +124,7 @@
       ["Indítás / leállítás / újraindítás", "minden projekt saját indítószkriptjét használja."],
       ["Frissítés egy kattintással", "ideiglenesen elmenti a nem commitolt változásokat, frissít, majd visszaállítja; hiba esetén visszagörget."],
       ["Bármilyen stack", "Next.js, FastAPI, Go binárisok, Godot, pygame és pip szolgáltatások egy táblában."],
+      ["Projektek hozzáadása a műszerfalról", "válassz mappát; az indítási parancs és a port automatikusan felismerésre kerül, JSON szerkesztés nélkül."],
       ["Kétnyelvű felület és világos/sötét téma", "a fejlécből váltható, helyben megjegyzett."],
       ["Csak indító", "soha nem futtat git init-et és nem ír a kezelt projektekbe."]
     ],
@@ -137,7 +142,7 @@
     "docs": "Dokumentáció",
     "designLabel": "Tervezés és architektúra (kínaiul)",
     "fullLabel": "Részletes README (kínaiul)",
-    "testsLabel": "111 teszt: elemzés, konfiguráció-ellenőrzés, git folyamatok és irányítópult-renderelés"
+    "testsLabel": "190 teszt: elemzés, konfiguráció-ellenőrzés, git folyamatok és irányítópult-renderelés"
   },
   "he": {
     "name": "עברית",
@@ -148,6 +153,7 @@
       ["הפעלה / עצירה / הפעלה מחדש", "משתמש בסקריפט ההפעלה של כל פרויקט."],
       ["עדכון בלחיצה אחת", "שומר זמנית שינויים שלא נשמרו ב-commit, מעדכן ומשחזר אותם; בכישלון מבצע rollback."],
       ["כל סטאק", "Next.js, FastAPI, קבצי בינארי של Go, Godot, pygame ושירותי pip בטבלה אחת."],
+      ["הוספת פרויקטים מהדשבורד", "בחרו תיקייה; פקודת ההפעלה והפורט מזוהים אוטומטית, ללא עריכת JSON."],
       ["ממשק דו-לשוני ותמה בהירה/כהה", "החלפה מהכותרת, נשמרת מקומית."],
       ["מפעיל בלבד", "אף פעם לא מריץ git init ולא כותב לפרויקטים המנוהלים."]
     ],
@@ -165,6 +171,6 @@
     "docs": "תיעוד",
     "designLabel": "עיצוב וארכיטקטורה (בסינית)",
     "fullLabel": "README מפורט (בסינית)",
-    "testsLabel": "111 בדיקות: ניתוח, אימות תצורה, זרימות git ורינדור לוח הבקרה"
+    "testsLabel": "190 בדיקות: ניתוח, אימות תצורה, זרימות git ורינדור לוח הבקרה"
   }
 }

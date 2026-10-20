@@ -1,6 +1,6 @@
 {
   "name": "github-project-initiator",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": true,
   "description": "本地 GitHub 项目统一管理服务：状态查看、启停、批量更新",
   "type": "module",

@@ -78,8 +78,8 @@ test('结构逐行一致：项目表 9 行、列表项 12 条', () => {
     // 表头 1 行 + 项目 9 行（分隔行以 |--- 开头，不计入）
     assert.equal(tableRows.length, 10, `${code} 的表格行数不对`);
     const bullets = text.split(/\r?\n/).filter((l) => l.startsWith('- '));
-    // 6 个功能 + 3 条安全 + 3 个文档链接
-    assert.equal(bullets.length, 12, `${code} 的列表项数量不对`);
+    // 7 个功能 + 3 条安全 + 3 个文档链接
+    assert.equal(bullets.length, 13, `${code} 的列表项数量不对`);
   }
 });
 
@@ -112,7 +112,7 @@ test('翻译源覆盖全部语言且字段完整', () => {
     for (const key of required) {
       assert.ok(t[code][key] !== undefined, `${code}.${key} 缺失`);
     }
-    assert.equal(t[code].features.length, 6, `${code}.features 应有 6 条`);
+    assert.equal(t[code].features.length, 7, `${code}.features 应有 7 条`);
     assert.equal(t[code].security.length, 3, `${code}.security 应有 3 条`);
     assert.equal(t[code].cols.length, 4, `${code}.cols 应有 4 列`);
     assert.equal(t[code].upd.length, 3, `${code}.upd 应有 3 种更新方式`);

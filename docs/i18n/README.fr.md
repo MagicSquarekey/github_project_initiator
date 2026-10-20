@@ -27,6 +27,7 @@ Nécessite Node.js 20+. Windows entièrement pris en charge ; Linux/macOS utilis
 - **Démarrer / arrêter / redémarrer** — réutilise le script de démarrage propre à chaque projet.
 - **Mise à jour en un clic** — remise temporaire des modifications non validées, mise à jour puis restauration ; retour arrière en cas d'échec.
 - **Tout type de stack** — Next.js, FastAPI, binaires Go, Godot, pygame et services pip dans un seul tableau.
+- **Ajouter des projets depuis le tableau de bord** — choisissez un dossier : la commande de démarrage et le port sont détectés automatiquement, sans éditer de JSON.
 - **Interface bilingue et thème clair/sombre** — bascule dans l'en-tête, mémorisée localement.
 - **Lanceur uniquement** — n'exécute jamais git init et n'écrit pas dans les projets gérés.
 
@@ -54,4 +55,4 @@ Nécessite Node.js 20+. Windows entièrement pris en charge ; Linux/macOS utilis
 
 - [Conception et architecture (chinois)](../design.md)
 - [README détaillé (chinois)](../README.full.zh-CN.md)
-- `npm test` — 111 tests : analyse, validation de configuration, flux git et rendu du tableau de bord
+- `npm test` — 190 tests : analyse, validation de configuration, flux git et rendu du tableau de bord

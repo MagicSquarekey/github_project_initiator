@@ -27,6 +27,7 @@ Erfordert Node.js 20+. Windows voll unterstützt; Linux/macOS nutzen die integri
 - **Starten / Stoppen / Neustarten** — nutzt das jeweilige Startskript des Projekts.
 - **Update mit einem Klick** — sichert nicht committete Änderungen, aktualisiert und stellt sie wieder her; bei Fehlern wird zurückgerollt.
 - **Jeder Stack** — Next.js, FastAPI, Go-Binaries, Godot, pygame und pip-Dienste in einer Tabelle.
+- **Projekte im Dashboard hinzufügen** — Ordner wählen, Startbefehl und Port werden automatisch erkannt – kein JSON-Editieren.
 - **Zweisprachige UI und Hell/Dunkel** — Umschaltung in der Kopfzeile, lokal gespeichert.
 - **Nur Launcher** — führt nie git init aus und schreibt nicht in verwaltete Projekte.
 
@@ -54,4 +55,4 @@ Erfordert Node.js 20+. Windows voll unterstützt; Linux/macOS nutzen die integri
 
 - [Design und Architektur (Chinesisch)](../design.md)
 - [Ausführliches README (Chinesisch)](../README.full.zh-CN.md)
-- `npm test` — 111 Tests: Parsing, Konfigurationsprüfung, Git-Abläufe und Dashboard-Rendering
+- `npm test` — 190 Tests: Parsing, Konfigurationsprüfung, Git-Abläufe und Dashboard-Rendering

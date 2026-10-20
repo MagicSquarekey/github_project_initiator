@@ -348,6 +348,8 @@ Elasticsearch 这类数据库仍保持手动升级（数据/配置迁移风险�
 | 方法 | 路径 | 说明 |
 |---|---|---|
 | GET | `/api/projects` | 项目列表 + 实时状态（看板轮询用） |
+| POST | `/api/projects` | 添加监测项目（校验后写 registry.json） |
+| DELETE | `/api/projects/:id` | 从看板移除项目（只改配置，不删文件） |
 | GET | `/api/projects/:id` | 单个项目详情 |
 | POST | `/api/projects/:id/start` | 启动 |
 | POST | `/api/projects/:id/stop` | 停止 |
@@ -356,6 +358,8 @@ Elasticsearch 这类数据库仍保持手动升级（数据/配置迁移风险�
 | GET | `/api/projects/:id/logs?lines=200` | 最近 N 行日志 |
 | POST | `/api/update-all` | 批量更新（顺序执行，逐个回显） |
 | POST | `/api/scan` | 扫描目录发现新项目（见 6.3） |
+| GET | `/api/inspect?path=` | 识别单个目录的启动方式 / 端口 / 更新方式 |
+| GET | `/api/browse?path=` | 文件夹选择器（只列目录，不读文件） |
 | GET | `/api/health` | 管理器自身健康 |
 
 ### 6.2 关键响应示例
@@ -398,13 +402,40 @@ Elasticsearch 这类数据库仍保持手动升级（数据/配置迁移风险�
 { "ok": false, "error": "PORT_IN_USE", "message": "端口 8090 已被占用 (PID 51392)" }
 ```
 
-### 6.3 目录扫描（可选能力）
+### 6.3 添加监测项目（扫描 + 识别 + 写盘）
 
-`POST /api/scan` 遍历 `~/Desktop`，按特征识别项目：
-- 有 `package.json` / `pyproject.toml` / `project.godot` / `*.exe` + `config.json`
-- 有 `.git` 或疑似可 init
+开源用户最常见的卡点是"不知道 registry.json 怎么写"。看板提供一条完整的添加路径：
 
-返回候选列表，**不自动写入 registry**——由用户确认后加入。避免把临时目录、实验代码误纳管。
+```
+[添加项目] → 浏览/输入目录 → 自动识别 → 表单确认 → POST /api/projects → 写 registry.json
+```
+
+**目录识别（`GET /api/inspect`）** 只做建议，不自动保存：
+
+| 线索 | 识别结果 |
+|---|---|
+| `start.bat` / `start.cmd` / `start.vbs` / `start.ps1` / `run.*` / `dev.*` | 启动命令（Windows 用 `cmd.exe /c`，`.ps1` 走 `powershell -File`） |
+| `package.json` 的 `scripts.start` / `dev` / `serve` | `npm start` / `npm run dev`（Windows 包一层 `cmd.exe /c`） |
+| 与目录同名的 `.exe`，或唯一的 `.exe` | 直接运行该程序 |
+| `*.jar` | `java -jar` |
+| `main.py` / `app.py` / `server.py` / `manage.py` | `python ...` |
+| `.env` 的 `PORT`、`config.json` 的 `listen`、Spring 的 `server.port`、Vite/Next 的 `port` | 端口建议 |
+| `.git` | 更新方式建议 `git`，否则 `none` |
+| `package.json` / `pyproject.toml` / `project.godot` / `pom.xml` / `go.mod` … | kind 建议 |
+
+**扫描（`POST /api/scan`）** 遍历根目录（默认 `~/Desktop`，最多 2 层），跳过 `node_modules`、`.git`、隐藏目录等，返回候选并标记 `managed`（已在 registry 里的显示"已添加"）。扫描**不写盘**，避免把临时目录误纳管。
+
+**写盘（`POST /api/projects`）** 的约束：
+
+- 归一化层（`src/api/manage.js`）补默认值：`startupTimeoutMs=120000`、`update.strategy=none`、端口→`url`、端口→`stop.strategy=port`；
+- 最终仍交给 `validateRegistry()`：id 格式、目录存在、同名/同目录去重、端口唯一、start/stop/update 结构，全部复用同一套规则；
+- 路径按用户输入原样保存（支持 `~` / `${ENV}`），只在检查时展开；
+- `saveRegistry()` 原子写（临时文件 + rename），写坏不会留下半截 JSON；
+- 只改 `data/registry.json`，**绝不创建、修改或删除被管项目的文件**。
+
+**移除（`DELETE /api/projects/:id`）** 只删除 registry 条目，二次确认文案明确"不会删除任何文件"；管理器自身（`manager`）拒绝移除。
+
+**目录浏览（`GET /api/browse`）** 为浏览器补上"选择文件夹"能力（网页拿不到本地绝对路径）：只返回目录名，跳过 `node_modules`、`AppData` 等重目录，不读取文件内容。由于它会暴露目录结构，CORS 从 `*` 收紧为"仅本机来源 + `file://`"。
 
 ---
 
@@ -414,7 +445,7 @@ Elasticsearch 这类数据库仍保持手动升级（数据/配置迁移风险�
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│  github_project_initiator          [全部启动] [全部停止] [批量更新] │
+│  github_project_initiator   [+ 添加项目] [全部启动] [全部停止] [批量更新] │
 ├──────────────────────────────────────────────────────────────┤
 │ ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐  │
 │ │ LibreTV    │ │ gpp        │ │ AutoTestHub│ │ qoder2api  │  │
@@ -436,7 +467,9 @@ Elasticsearch 这类数据库仍保持手动升级（数据/配置迁移风险�
 - 每 3 秒轮询一次 `/api/projects`，只更新变化字段（避免整页重绘）
 - 点击卡片展开最近 20 行日志（折叠面板，不跳页）
 - 无端口项目（2048、Grimoire-Echoes、REA）不显示 URL，"运行中"靠进程名探测
-- 全部操作有二次确认的只有"全部停止"（会杀 6 个正在跑的服务）
+- 全部操作有二次确认的只有"全部停止"（会杀 6 个正在跑的服务）和"移除项目"
+- 顶栏"添加项目"打开弹窗：目录浏览 → 扫描候选 → 自动预填 → 确认添加；表单里每个字段都带一句说明，避免用户猜"启动命令该写什么"
+- 卡片底部有"移除"：只从看板删除条目，不动项目文件
 
 ---
 
@@ -451,10 +484,11 @@ github_project_initiator/
 │   ├── index.js               # 入口：HTTP 服务 + 定时任务
 │   ├── server.js              # 路由与静态资源
 │   ├── api/
-│   │   ├── projects.js        # 项目 CRUD + 状态聚合
-│   │   ├── lifecycle.js       # 启停重启
-│   │   ├── update.js          # git 更新逻辑
-│   │   └── scan.js            # 目录扫描
+│   │   ├── projects.js        # 状态聚合 + 启停/更新编排
+│   │   ├── manage.js          # 添加/移除项目（归一化 + 写盘）
+│   │   ├── inspect.js         # 单目录识别（启动方式/端口/kind）
+│   │   ├── scan.js            # 目录扫描（复用 inspect）
+│   │   └── browse.js          # 文件夹选择器（只列目录）
 │   ├── core/
 │   │   ├── registry.js        # registry.json 读写 + 校验
 │   │   ├── process.js         # spawn 封装、日志管道
@@ -482,7 +516,7 @@ github_project_initiator/
 
 ## 9. 实施计划
 
-> **状态：已全部完成。** 以下各期的验收标准均已在真机验证通过，测试见 `test/`（65 项全过）。
+> **状态：已全部完成。** 以下各期的验收标准均已在真机验证通过，测试见 `test/`（190 项全过）。
 
 ### Phase 0：骨架与配置 ✅
 
@@ -523,8 +557,17 @@ github_project_initiator/
 ### Phase 5：常驻与收尾 ✅
 
 - [x] `scripts/install-startup.ps1`：注册计划任务开机自启（可选，默认不做）
-- [x] `test/` 65 项测试全过
+- [x] `test/` 190 项测试全过
 - [x] README 使用说明
+
+### Phase 6：看板内添加项目 ✅
+
+- [x] `api/manage.js`：输入归一化 + 复用 `validateRegistry` + 原子写盘
+- [x] `api/inspect.js` / `scan.js`：启动脚本、npm scripts、端口、git 识别
+- [x] `api/browse.js`：文件夹选择器（只列目录，不读文件）
+- [x] 看板：添加项目弹窗、扫描候选、自动预填、移除按钮
+- [x] CORS 收紧为本机来源；`GPI_REGISTRY_FILE` 支持测试/多环境
+- [x] `test/manage|scan|server|startable.test.js`：新增 39 项，总计 190 项全过
 
 ---
 
@@ -539,6 +582,9 @@ github_project_initiator/
 | 5 | `netstat` 解析依赖输出格式 | 加边界测试锁定 `:8090` vs `80901` | Windows 版本升级导致格式变化时测试会先失败 |
 | 6 | 日志无限增长 | 单文件超 10MB 自动轮转到 `.1` | 暂不接日志清理，量太小 |
 | 7 | LibreTV 端口：脚本用 8090，但 `package.json` 的 `dev`/`start` 是 8080 | 以脚本为准（8090），registry 记 8090 | 在卡片上显示脚本实际端口，避免看 `package.json` 的人困惑 |
+| 8 | 目录浏览接口会暴露本机目录结构 | 只监听 127.0.0.1；CORS 只放行本机来源与 `file://`；只列目录不读文件 | 若将来要多机访问，必须先加鉴权 |
+| 9 | 自动识别是启发式，可能猜错启动方式或端口 | 只预填表单，不自动保存；用户确认后才写盘 | 识别不到时手填，`notes` 里记录端口来源 |
+| 10 | 通过看板写 registry 可能写坏 | 归一化 + `validateRegistry` + 原子写；错误逐条返回 | 保留 `registry.example.json` 作为可回退模板 |
 
 ---
 

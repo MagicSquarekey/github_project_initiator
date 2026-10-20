@@ -142,12 +142,18 @@ function resolveStartScript(project) {
     // 脚本名必须是单纯的文件名（可含路径分隔符），不能是复杂命令
     if (!script) return null;
     if (/[&|<>]|\bif\b|\bfor\b|\bstart\b/i.test(script)) return null;
+    // 只有"看起来像文件"的 token 才做存在性检查。
+    // `npm` / `node` / `python` 这类 PATH 命令在项目目录里当然找不到同名文件，
+    // 不能据此判成不可启动——交给运行时决定。
+    if (!/[.\\/]/.test(script)) return null;
     return path.resolve(project.path, script);
   }
 
   // 直接可执行文件且无参数：command 本身就是文件
   if (!project.start.args?.length) {
     if (/[&|<>]/.test(project.start.command)) return null;
+    // 同理：不带扩展名/分隔符的裸命令名（node、npm…）不静态检查
+    if (!/[.\\/]/.test(project.start.command)) return null;
     return path.resolve(project.path, project.start.command);
   }
 

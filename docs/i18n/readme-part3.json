@@ -8,6 +8,7 @@
       ["स्टार्ट / स्टॉप / रीस्टार्ट", "हर प्रोजेक्ट की अपनी स्टार्ट स्क्रिप्ट का उपयोग।"],
       ["एक-क्लिक अपडेट", "बिना कमिट किए बदलावों को अस्थायी रूप से सहेजता है, अपडेट करता है और फिर बहाल करता है; विफलता पर रोलबैक।"],
       ["कोई भी स्टैक", "Next.js, FastAPI, Go बाइनरी, Godot, pygame और pip सेवाएँ एक ही तालिका में।"],
+      ["डैशबोर्ड से प्रोजेक्ट जोड़ें", "फ़ोल्डर चुनें; स्टार्ट कमांड और पोर्ट स्वतः पहचाने जाते हैं, JSON संपादित करने की ज़रूरत नहीं।"],
       ["द्विभाषी UI और लाइट/डार्क", "हेडर से बदलें, पसंद स्थानीय रूप से याद रहती है।"],
       ["केवल लॉन्चर", "प्रबंधित प्रोजेक्ट्स में कभी git init नहीं चलाता और न ही लिखता है।"]
     ],
@@ -25,7 +26,7 @@
     "docs": "दस्तावेज़",
     "designLabel": "डिज़ाइन और आर्किटेक्चर (चीनी में)",
     "fullLabel": "विस्तृत README (चीनी में)",
-    "testsLabel": "111 परीक्षण: पार्सिंग, कॉन्फ़िग सत्यापन, git प्रवाह और डैशबोर्ड रेंडरिंग"
+    "testsLabel": "190 परीक्षण: पार्सिंग, कॉन्फ़िग सत्यापन, git प्रवाह और डैशबोर्ड रेंडरिंग"
   },
   "bn": {
     "name": "বাংলা",
@@ -36,6 +37,7 @@
       ["চালু / বন্ধ / রিস্টার্ট", "প্রতিটি প্রজেক্টের নিজস্ব স্টার্ট স্ক্রিপ্ট ব্যবহার করে।"],
       ["এক ক্লিকে আপডেট", "কমিট না করা পরিবর্তন সাময়িকভাবে সংরক্ষণ করে, আপডেট করে এবং ফিরিয়ে দেয়; ব্যর্থ হলে রোলব্যাক।"],
       ["যেকোনো স্ট্যাক", "Next.js, FastAPI, Go বাইনারি, Godot, pygame ও pip সার্ভিস একই টেবিলে।"],
+      ["ড্যাশবোর্ড থেকে প্রকল্প যোগ করুন", "ফোল্ডার বেছে নিন; স্টার্ট কমান্ড ও পোর্ট স্বয়ংক্রিয়ভাবে শনাক্ত হয়, JSON সম্পাদনার দরকার নেই।"],
       ["দ্বিভাষিক UI ও লাইট/ডার্ক", "হেডার থেকে বদলান, পছন্দ লোকালি সংরক্ষিত।"],
       ["শুধু লঞ্চার", "ম্যানেজ করা প্রজেক্টে কখনো git init চালায় না বা লেখে না।"]
     ],
@@ -53,7 +55,7 @@
     "docs": "ডকুমেন্টেশন",
     "designLabel": "ডিজাইন ও আর্কিটেকচার (চীনা)",
     "fullLabel": "বিস্তারিত README (চীনা)",
-    "testsLabel": "১১১টি পরীক্ষা: পার্সিং, কনফিগ যাচাই, git প্রবাহ ও ড্যাশবোর্ড রেন্ডারিং"
+    "testsLabel": "১৯০টি পরীক্ষা: পার্সিং, কনফিগ যাচাই, git প্রবাহ ও ড্যাশবোর্ড রেন্ডারিং"
   },
   "ur": {
     "name": "اردو",
@@ -64,6 +66,7 @@
       ["اسٹارٹ / اسٹاپ / ری اسٹارٹ", "ہر پروجیکٹ کی اپنی اسٹارٹ اسکرپٹ استعمال کرتا ہے۔"],
       ["ایک کلک اپ ڈیٹ", "غیر کمیٹ شدہ تبدیلیاں عارضی طور پر محفوظ کرتا ہے، اپ ڈیٹ کرتا ہے اور واپس بحال کرتا ہے؛ ناکامی پر رول بیک۔"],
       ["کوئی بھی اسٹیک", "Next.js، FastAPI، Go بائنریز، Godot، pygame اور pip سروسز ایک ہی جدول میں۔"],
+      ["ڈیش بورڈ سے پروجیکٹ شامل کریں", "فولڈر منتخب کریں؛ اسٹارٹ کمانڈ اور پورٹ خودکار طور پر پہچانے جاتے ہیں، JSON میں ترمیم کی ضرورت نہیں۔"],
       ["دو لسانی UI اور لائٹ/ڈارک", "ہیڈر سے تبدیل کریں، ترجیح مقامی طور پر محفوظ۔"],
       ["صرف لانچر", "منظم پروجیکٹس میں کبھی git init نہیں چلاتا اور نہ لکھتا ہے۔"]
     ],
@@ -81,7 +84,7 @@
     "docs": "دستاویزات",
     "designLabel": "ڈیزائن اور آرکیٹیکچر (چینی میں)",
     "fullLabel": "تفصیلی README (چینی میں)",
-    "testsLabel": "111 ٹیسٹ: پارسنگ، کنفیگ کی توثیق، git فلو اور ڈیش بورڈ رینڈرنگ"
+    "testsLabel": "190 ٹیسٹ: پارسنگ، کنفیگ کی توثیق، git فلو اور ڈیش بورڈ رینڈرنگ"
   },
   "fa": {
     "name": "فارسی",
@@ -92,6 +95,7 @@
       ["اجرا / توقف / راه‌اندازی مجدد", "از اسکریپت اجرای خود هر پروژه استفاده می‌کند."],
       ["به‌روزرسانی با یک کلیک", "تغییرات ثبت‌نشده را موقتاً ذخیره، به‌روزرسانی و سپس بازگردانی می‌کند؛ در صورت خطا عقب‌گرد."],
       ["هر پشته‌ای", "Next.js، FastAPI، باینری‌های Go، Godot، pygame و سرویس‌های pip در یک جدول."],
+      ["افزودن پروژه از داشبورد", "پوشه را انتخاب کنید؛ فرمان اجرا و پورت به‌طور خودکار تشخیص داده می‌شوند، نیازی به ویرایش JSON نیست."],
       ["رابط دوزبانه و تم روشن/تیره", "تغییر از سربرگ، در حافظه محلی."],
       ["فقط لانچر", "هرگز git init اجرا نمی‌کند و در پروژه‌های مدیریت‌شده نمی‌نویسد."]
     ],
@@ -109,7 +113,7 @@
     "docs": "مستندات",
     "designLabel": "طراحی و معماری (به چینی)",
     "fullLabel": "README مفصل (به چینی)",
-    "testsLabel": "۱۱۱ تست: تجزیه، اعتبارسنجی تنظیمات، جریان‌های git و رندر داشبورد"
+    "testsLabel": "১৯০ تست: تجزیه، اعتبارسنجی تنظیمات، جریان‌های git و رندر داشبورد"
   },
   "tr": {
     "name": "Türkçe",
@@ -120,6 +124,7 @@
       ["Başlat / durdur / yeniden başlat", "her projenin kendi başlatma betiğini kullanır."],
       ["Tek tıkla güncelleme", "işlenmemiş değişiklikleri geçici olarak saklar, günceller ve geri yükler; hata olursa geri alır."],
       ["Her stack", "Next.js, FastAPI, Go ikili dosyaları, Godot, pygame ve pip servisleri tek tabloda."],
+      ["Panodan proje ekleme", "klasörü seçin; başlatma komutu ve port otomatik algılanır, JSON düzenlemeye gerek yok."],
       ["İki dilli arayüz ve açık/koyu tema", "üst çubuktan değiştirilir, yerelde saklanır."],
       ["Yalnızca başlatıcı", "yönetilen projelerde asla git init çalıştırmaz ve yazmaz."]
     ],
@@ -137,7 +142,7 @@
     "docs": "Belgeler",
     "designLabel": "Tasarım ve mimari (Çince)",
     "fullLabel": "Ayrıntılı README (Çince)",
-    "testsLabel": "111 test: ayrıştırma, yapılandırma doğrulama, git akışları ve panel oluşturma"
+    "testsLabel": "190 test: ayrıştırma, yapılandırma doğrulama, git akışları ve panel oluşturma"
   },
   "vi": {
     "name": "Tiếng Việt",
@@ -148,6 +153,7 @@
       ["Khởi động / dừng / khởi động lại", "dùng lại script khởi động riêng của từng dự án."],
       ["Cập nhật một cú nhấp", "tạm lưu thay đổi chưa commit, cập nhật rồi khôi phục; nếu lỗi sẽ hoàn tác."],
       ["Mọi công nghệ", "Next.js, FastAPI, tệp nhị phân Go, Godot, pygame và dịch vụ pip trong cùng một bảng."],
+      ["Thêm dự án từ bảng điều khiển", "chọn thư mục; lệnh khởi chạy và cổng được tự động nhận diện, không cần sửa JSON."],
       ["Giao diện song ngữ và sáng/tối", "chuyển ở thanh đầu, ghi nhớ cục bộ."],
       ["Chỉ là trình khởi chạy", "không bao giờ chạy git init hay ghi vào dự án được quản lý."]
     ],
@@ -165,6 +171,6 @@
     "docs": "Tài liệu",
     "designLabel": "Thiết kế và kiến trúc (tiếng Trung)",
     "fullLabel": "README chi tiết (tiếng Trung)",
-    "testsLabel": "111 bài kiểm thử: phân tích, xác thực cấu hình, luồng git và kết xuất bảng điều khiển"
+    "testsLabel": "190 bài kiểm thử: phân tích, xác thực cấu hình, luồng git và kết xuất bảng điều khiển"
   }
 }

@@ -13,6 +13,7 @@ data/logs/
 data/state.json
 data/versions.json
 data/backups/
+data/release/
 data/*.tmp
 data/*.bak
 

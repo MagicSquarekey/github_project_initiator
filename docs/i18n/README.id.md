@@ -27,6 +27,7 @@ Memerlukan Node.js 20+. Windows didukung penuh; Linux/macOS memakai lapisan plat
 - **Mulai / hentikan / mulai ulang** — memakai skrip mulai milik tiap proyek.
 - **Pembaruan sekali klik** — menyimpan sementara perubahan yang belum di-commit, memperbarui, lalu memulihkannya; gagal berarti rollback.
 - **Semua stack** — Next.js, FastAPI, biner Go, Godot, pygame, dan layanan pip dalam satu tabel.
+- **Menambahkan proyek dari dasbor** — pilih folder; perintah mulai dan port dideteksi otomatis, tanpa mengedit JSON.
 - **UI dua bahasa dan tema terang/gelap** — beralih dari header, diingat secara lokal.
 - **Hanya peluncur** — tidak pernah menjalankan git init atau menulis ke proyek yang dikelola.
 
@@ -54,4 +55,4 @@ Memerlukan Node.js 20+. Windows didukung penuh; Linux/macOS memakai lapisan plat
 
 - [Desain dan arsitektur (Tionghoa)](../design.md)
 - [README terperinci (Tionghoa)](../README.full.zh-CN.md)
-- `npm test` — 111 pengujian: parsing, validasi konfigurasi, alur git, dan rendering dasbor
+- `npm test` — 190 pengujian: parsing, validasi konfigurasi, alur git, dan rendering dasbor

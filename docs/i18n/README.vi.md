@@ -27,6 +27,7 @@ Cần Node.js 20+. Windows được hỗ trợ đầy đủ; Linux/macOS dùng l
 - **Khởi động / dừng / khởi động lại** — dùng lại script khởi động riêng của từng dự án.
 - **Cập nhật một cú nhấp** — tạm lưu thay đổi chưa commit, cập nhật rồi khôi phục; nếu lỗi sẽ hoàn tác.
 - **Mọi công nghệ** — Next.js, FastAPI, tệp nhị phân Go, Godot, pygame và dịch vụ pip trong cùng một bảng.
+- **Thêm dự án từ bảng điều khiển** — chọn thư mục; lệnh khởi chạy và cổng được tự động nhận diện, không cần sửa JSON.
 - **Giao diện song ngữ và sáng/tối** — chuyển ở thanh đầu, ghi nhớ cục bộ.
 - **Chỉ là trình khởi chạy** — không bao giờ chạy git init hay ghi vào dự án được quản lý.
 
@@ -54,4 +55,4 @@ Cần Node.js 20+. Windows được hỗ trợ đầy đủ; Linux/macOS dùng l
 
 - [Thiết kế và kiến trúc (tiếng Trung)](../design.md)
 - [README chi tiết (tiếng Trung)](../README.full.zh-CN.md)
-- `npm test` — 111 bài kiểm thử: phân tích, xác thực cấu hình, luồng git và kết xuất bảng điều khiển
+- `npm test` — 190 bài kiểm thử: phân tích, xác thực cấu hình, luồng git và kết xuất bảng điều khiển

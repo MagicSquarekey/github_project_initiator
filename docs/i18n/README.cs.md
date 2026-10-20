@@ -27,6 +27,7 @@ Vyžaduje Node.js 20+. Windows je plně podporován; Linux/macOS používají ve
 - **Spustit / zastavit / restartovat** — používá vlastní spouštěcí skript každého projektu.
 - **Aktualizace jedním kliknutím** — dočasně uloží necommitnuté změny, aktualizuje a poté je obnoví; při chybě vrátí zpět.
 - **Jakýkoli stack** — Next.js, FastAPI, binárky Go, Godot, pygame a pip služby v jedné tabulce.
+- **Přidávání projektů z panelu** — vyberte složku; příkaz pro spuštění a port se rozpoznají automaticky, bez úprav JSON.
 - **Dvojjazyčné UI a světlý/tmavý režim** — přepínání v záhlaví, ukládá se lokálně.
 - **Pouze spouštěč** — nikdy nespouští git init ani nezapisuje do spravovaných projektů.
 
@@ -54,4 +55,4 @@ Vyžaduje Node.js 20+. Windows je plně podporován; Linux/macOS používají ve
 
 - [Design a architektura (čínsky)](../design.md)
 - [Podrobný README (čínsky)](../README.full.zh-CN.md)
-- `npm test` — 111 testů: parsování, validace konfigurace, git toky a vykreslování panelu
+- `npm test` — 190 testů: parsování, validace konfigurace, git toky a vykreslování panelu

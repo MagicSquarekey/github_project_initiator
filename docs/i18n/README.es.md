@@ -27,6 +27,7 @@ Requiere Node.js 20+. Windows totalmente compatible; Linux/macOS usan la capa de
 - **Iniciar / detener / reiniciar** — reutiliza el script de inicio propio de cada proyecto.
 - **Actualización con un clic** — guarda temporalmente los cambios sin confirmar, actualiza y los restaura; si falla, revierte.
 - **Cualquier stack** — Next.js, FastAPI, binarios Go, Godot, pygame y servicios pip en una sola tabla.
+- **Añadir proyectos desde el panel** — elige una carpeta y se detectan automáticamente el comando de inicio y el puerto, sin editar JSON.
 - **Interfaz bilingüe y tema claro/oscuro** — cambio desde la cabecera, recordado localmente.
 - **Solo lanzador** — nunca ejecuta git init ni escribe en los proyectos gestionados.
 
@@ -54,4 +55,4 @@ Requiere Node.js 20+. Windows totalmente compatible; Linux/macOS usan la capa de
 
 - [Diseño y arquitectura (chino)](../design.md)
 - [README detallado (chino)](../README.full.zh-CN.md)
-- `npm test` — 111 pruebas: análisis, validación de configuración, flujos git y renderizado del panel
+- `npm test` — 190 pruebas: análisis, validación de configuración, flujos git y renderizado del panel

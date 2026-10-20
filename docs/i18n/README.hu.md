@@ -27,6 +27,7 @@ Node.js 20+ szükséges. A Windows teljesen támogatott; a Linux/macOS a beépí
 - **Indítás / leállítás / újraindítás** — minden projekt saját indítószkriptjét használja.
 - **Frissítés egy kattintással** — ideiglenesen elmenti a nem commitolt változásokat, frissít, majd visszaállítja; hiba esetén visszagörget.
 - **Bármilyen stack** — Next.js, FastAPI, Go binárisok, Godot, pygame és pip szolgáltatások egy táblában.
+- **Projektek hozzáadása a műszerfalról** — válassz mappát; az indítási parancs és a port automatikusan felismerésre kerül, JSON szerkesztés nélkül.
 - **Kétnyelvű felület és világos/sötét téma** — a fejlécből váltható, helyben megjegyzett.
 - **Csak indító** — soha nem futtat git init-et és nem ír a kezelt projektekbe.
 
@@ -54,4 +55,4 @@ Node.js 20+ szükséges. A Windows teljesen támogatott; a Linux/macOS a beépí
 
 - [Tervezés és architektúra (kínaiul)](../design.md)
 - [Részletes README (kínaiul)](../README.full.zh-CN.md)
-- `npm test` — 111 teszt: elemzés, konfiguráció-ellenőrzés, git folyamatok és irányítópult-renderelés
+- `npm test` — 190 teszt: elemzés, konfiguráció-ellenőrzés, git folyamatok és irányítópult-renderelés

@@ -27,6 +27,7 @@ Necesită Node.js 20+. Windows este complet acceptat; Linux/macOS folosesc strat
 - **Pornire / oprire / repornire** — folosește scriptul de pornire propriu fiecărui proiect.
 - **Actualizare cu un clic** — salvează temporar modificările neconfirmate, actualizează și le restaurează; la eroare face rollback.
 - **Orice stack** — Next.js, FastAPI, binare Go, Godot, pygame și servicii pip într-un singur tabel.
+- **Adăugarea proiectelor din panou** — alege un folder; comanda de pornire și portul sunt detectate automat, fără editare JSON.
 - **Interfață bilingvă și temă deschisă/închisă** — comutare din antet, memorată local.
 - **Doar launcher** — nu rulează niciodată git init și nu scrie în proiectele gestionate.
 
@@ -54,4 +55,4 @@ Necesită Node.js 20+. Windows este complet acceptat; Linux/macOS folosesc strat
 
 - [Design și arhitectură (în chineză)](../design.md)
 - [README detaliat (în chineză)](../README.full.zh-CN.md)
-- `npm test` — 111 teste: parsare, validarea configurației, fluxuri git și randarea panoului
+- `npm test` — 190 teste: parsare, validarea configurației, fluxuri git și randarea panoului

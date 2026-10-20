@@ -8,6 +8,7 @@
       ["Iniciar / parar / reiniciar", "reutiliza o script de inicialização de cada projeto."],
       ["Atualização com um clique", "guarda temporariamente as alterações não confirmadas, atualiza e restaura; em caso de falha, reverte."],
       ["Qualquer stack", "Next.js, FastAPI, binários Go, Godot, pygame e serviços pip numa só tabela."],
+      ["Adicionar projetos pelo painel", "escolha uma pasta e o comando de início e a porta são detectados automaticamente, sem editar JSON."],
       ["Interface bilíngue e tema claro/escuro", "alternância no cabeçalho, memorizada localmente."],
       ["Apenas lançador", "nunca executa git init nem escreve nos projetos gerenciados."]
     ],
@@ -25,7 +26,7 @@
     "docs": "Documentação",
     "designLabel": "Design e arquitetura (chinês)",
     "fullLabel": "README detalhado (chinês)",
-    "testsLabel": "111 testes: análise, validação de configuração, fluxos git e renderização do painel"
+    "testsLabel": "190 testes: análise, validação de configuração, fluxos git e renderização do painel"
   },
   "fr": {
     "name": "Français",
@@ -36,6 +37,7 @@
       ["Démarrer / arrêter / redémarrer", "réutilise le script de démarrage propre à chaque projet."],
       ["Mise à jour en un clic", "remise temporaire des modifications non validées, mise à jour puis restauration ; retour arrière en cas d'échec."],
       ["Tout type de stack", "Next.js, FastAPI, binaires Go, Godot, pygame et services pip dans un seul tableau."],
+      ["Ajouter des projets depuis le tableau de bord", "choisissez un dossier : la commande de démarrage et le port sont détectés automatiquement, sans éditer de JSON."],
       ["Interface bilingue et thème clair/sombre", "bascule dans l'en-tête, mémorisée localement."],
       ["Lanceur uniquement", "n'exécute jamais git init et n'écrit pas dans les projets gérés."]
     ],
@@ -53,7 +55,7 @@
     "docs": "Documentation",
     "designLabel": "Conception et architecture (chinois)",
     "fullLabel": "README détaillé (chinois)",
-    "testsLabel": "111 tests : analyse, validation de configuration, flux git et rendu du tableau de bord"
+    "testsLabel": "190 tests : analyse, validation de configuration, flux git et rendu du tableau de bord"
   },
   "de": {
     "name": "Deutsch",
@@ -64,6 +66,7 @@
       ["Starten / Stoppen / Neustarten", "nutzt das jeweilige Startskript des Projekts."],
       ["Update mit einem Klick", "sichert nicht committete Änderungen, aktualisiert und stellt sie wieder her; bei Fehlern wird zurückgerollt."],
       ["Jeder Stack", "Next.js, FastAPI, Go-Binaries, Godot, pygame und pip-Dienste in einer Tabelle."],
+      ["Projekte im Dashboard hinzufügen", "Ordner wählen, Startbefehl und Port werden automatisch erkannt – kein JSON-Editieren."],
       ["Zweisprachige UI und Hell/Dunkel", "Umschaltung in der Kopfzeile, lokal gespeichert."],
       ["Nur Launcher", "führt nie git init aus und schreibt nicht in verwaltete Projekte."]
     ],
@@ -81,7 +84,7 @@
     "docs": "Dokumentation",
     "designLabel": "Design und Architektur (Chinesisch)",
     "fullLabel": "Ausführliches README (Chinesisch)",
-    "testsLabel": "111 Tests: Parsing, Konfigurationsprüfung, Git-Abläufe und Dashboard-Rendering"
+    "testsLabel": "190 Tests: Parsing, Konfigurationsprüfung, Git-Abläufe und Dashboard-Rendering"
   },
   "it": {
     "name": "Italiano",
@@ -92,6 +95,7 @@
       ["Avvia / arresta / riavvia", "riutilizza lo script di avvio di ciascun progetto."],
       ["Aggiornamento con un clic", "salva temporaneamente le modifiche non confermate, aggiorna e le ripristina; in caso di errore esegue il rollback."],
       ["Qualsiasi stack", "Next.js, FastAPI, binari Go, Godot, pygame e servizi pip in un'unica tabella."],
+      ["Aggiungere progetti dalla dashboard", "scegli una cartella: comando di avvio e porta vengono rilevati automaticamente, senza modificare JSON."],
       ["Interfaccia bilingue e tema chiaro/scuro", "cambio dall'intestazione, memorizzato localmente."],
       ["Solo launcher", "non esegue mai git init né scrive nei progetti gestiti."]
     ],
@@ -109,7 +113,7 @@
     "docs": "Documentazione",
     "designLabel": "Design e architettura (cinese)",
     "fullLabel": "README dettagliato (cinese)",
-    "testsLabel": "111 test: parsing, validazione della configurazione, flussi git e rendering della dashboard"
+    "testsLabel": "190 test: parsing, validazione della configurazione, flussi git e rendering della dashboard"
   },
   "ru": {
     "name": "Русский",
@@ -120,6 +124,7 @@
       ["Запуск / остановка / перезапуск", "используется собственный скрипт запуска проекта."],
       ["Обновление в один клик", "незакоммиченные изменения временно сохраняются, затем восстанавливаются; при ошибке выполняется откат."],
       ["Любой стек", "Next.js, FastAPI, бинарники Go, Godot, pygame и pip-сервисы в одной таблице."],
+      ["Добавление проектов из панели", "выберите папку — команда запуска и порт определятся автоматически, без правки JSON."],
       ["Двуязычный интерфейс и светлая/тёмная тема", "переключение в шапке, запоминается локально."],
       ["Только лаунчер", "никогда не выполняет git init и не пишет в управляемые проекты."]
     ],
@@ -137,7 +142,7 @@
     "docs": "Документация",
     "designLabel": "Архитектура и дизайн (на китайском)",
     "fullLabel": "Подробный README (на китайском)",
-    "testsLabel": "111 тестов: парсинг, проверка конфигурации, git-процессы и рендеринг панели"
+    "testsLabel": "190 тестов: парсинг, проверка конфигурации, git-процессы и рендеринг панели"
   },
   "ar": {
     "name": "العربية",
@@ -148,6 +153,7 @@
       ["تشغيل / إيقاف / إعادة تشغيل", "يعيد استخدام سكربت التشغيل الخاص بكل مشروع."],
       ["تحديث بنقرة واحدة", "يحفظ التغييرات غير الملتزم بها مؤقتًا، ثم يحدّث ويعيدها؛ وعند الفشل يتراجع."],
       ["أي تقنية", "Next.js وFastAPI وملفات Go التنفيذية وGodot وpygame وخدمات pip في جدول واحد."],
+      ["إضافة المشاريع من اللوحة", "اختر مجلدًا ليتم اكتشاف أمر التشغيل والمنفذ تلقائيًا، دون تحرير JSON."],
       ["واجهة ثنائية اللغة وسمة فاتحة/داكنة", "التبديل من الشريط العلوي، ويُحفظ محليًا."],
       ["مشغّل فقط", "لا ينفّذ git init ولا يكتب في المشاريع المُدارة."]
     ],
@@ -165,6 +171,6 @@
     "docs": "التوثيق",
     "designLabel": "التصميم والبنية (بالصينية)",
     "fullLabel": "README مفصّل (بالصينية)",
-    "testsLabel": "111 اختبارًا: التحليل، التحقق من الإعدادات، مسارات git، وعرض اللوحة"
+    "testsLabel": "190 اختبارًا: التحليل، التحقق من الإعدادات، مسارات git، وعرض اللوحة"
   }
 }
