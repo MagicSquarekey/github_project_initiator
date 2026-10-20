@@ -16,7 +16,15 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { exec } from '../util/exec.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const ROOT = path.resolve(__dirname, '..', '..');
+/** 管理器自己记录的版本（release 更新成功后写入），优先于 registry 静态值 */
+function statePath() {
+  return process.env.GPI_VERSIONS_FILE || path.join(ROOT, 'data', 'versions.json');
+}
 
 const CACHE_TTL_MS = 60 * 1000;
 const cache = new Map();
@@ -35,6 +43,20 @@ function readText(file, maxBytes = 2 * 1024 * 1024) {
     return fs.readFileSync(file, 'utf8');
   } catch {
     return null;
+  }
+}
+
+/**
+ * @returns {Record<string, string>}
+ */
+function readStateVersions() {
+  const raw = readText(statePath(), 256 * 1024);
+  if (!raw) return {};
+  try {
+    const data = JSON.parse(raw);
+    return data && typeof data === 'object' && !Array.isArray(data) ? data : {};
+  } catch {
+    return {};
   }
 }
 
@@ -246,12 +268,19 @@ async function detectUncached(project) {
 }
 
 /**
- * 探测项目版本。静态 version 永远优先，不经过缓存。
+ * 探测项目版本。
+ *
+ * 优先级：管理器记录的版本（release 更新成功后写入）→ registry 静态 version
+ * → 清单/命令/git 自动探测。前两者不经过缓存。
  *
  * @param {any} project
  * @returns {Promise<string|null>}
  */
 export async function detectVersion(project) {
+  const state = readStateVersions();
+  const recorded = state[project.id];
+  if (typeof recorded === 'string' && recorded.trim()) return recorded.trim();
+
   if (typeof project.version === 'string' && project.version.trim()) {
     return project.version.trim();
   }
@@ -267,5 +296,29 @@ export async function detectVersion(project) {
 
 /** 测试用：清空缓存，避免临时目录复用导致串味 */
 export function clearVersionCache() {
+  cache.clear();
+}
+
+/**
+ * 记录 release 更新后的版本，并清空探测缓存。
+ *
+ * 为什么不直接改 registry：registry 是用户手写的配置，路径可能是 ~/ 写法；
+ * 管理器自己维护一份 data/versions.json（不入库）更安全。
+ *
+ * @param {string} projectId
+ * @param {string} version
+ */
+export function recordVersion(projectId, version) {
+  if (typeof projectId !== 'string' || !projectId) return;
+  const v = String(version ?? '').trim();
+  if (!v) return;
+
+  const data = readStateVersions();
+  data[projectId] = v;
+  const file = statePath();
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const tmp = `${file}.tmp`;
+  fs.writeFileSync(tmp, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
+  fs.renameSync(tmp, file);
   cache.clear();
 }

@@ -265,6 +265,7 @@ async function pidsOnPort(port) {
 |---|---|---|
 | `port` | 反查 PID → `taskkill /F /PID` | LibreTV, gpp, qoder, wb2api |
 | `port` (多端口) | 对每个端口反查，合并 PID 集合后一起杀 | AutoTestHub（8686 + 5173） |
+| `port` + `imageNames` | 端口反查 + 进程名，回收包装器/伴随进程 | OpenViking（1933/18790 + openviking-server.exe/vikingbot.exe） |
 | `procname` | `taskkill /F /IM <name>.exe` | 2048、Grimoire-Echoes 等桌面程序 |
 | `command` | 执行项目自带停止脚本 | 有 `stop.bat` 的项目 |
 | `none` | 仅置状态位 | REA 这类 CLI 工具 |
@@ -275,13 +276,15 @@ async function pidsOnPort(port) {
 
 ## 5. 更新能力
 
-### 5.1 三种更新策略
+### 5.1 五种更新策略
 
-```
-git      普通 pull。git fetch + git pull --ff-only，失败回显不强行 merge
-git-fork  fork 同步。先 git fetch upstream，再 merge upstream/<branch>
-none     标记不可更新，UI 置灰
-```
+| strategy | 动作 | 适用 |
+|---|---|---|
+| `git` | `git fetch` + `git pull --ff-only` | 普通 git 仓库 |
+| `git-fork` | `git fetch upstream` + `git merge upstream/<branch>` | fork 项目 |
+| `command` | 执行项目自己的升级命令（如 `pip install -U`） | pip 安装的服务 |
+| `release` | 从 GitHub Release 下载资产，校验后覆盖/替换 | 非 git 的 zip / 二进制分发 |
+| `none` | 标记不可更新 | 数据库等高风险项目 |
 
 **只允许 fast-forward**：`--ff-only` 保证本地有未推送提交时**明确失败并报告**，而不是悄悄生成一个 merge commit。用户看到冲突提示后自己决定，比自动 merge 安全。
 
@@ -306,23 +309,33 @@ LibreTV 的 remote 是 `LibreSpark/LibreTV`，本地有修改（`start-libretv.c
 
 未跟踪文件（`start-libretv.cmd`、`tools/`）不受 pull 影响，这点要让用户放心。
 
-### 5.4 非 git 项目的处理
+### 5.4 非 git 项目的一键更新
 
-`qoder2api-hub`、`wb2api-panel`、`REA` 当前不是 git 仓库。
+非 git 项目不再一律"手动更新"，按上游分发方式选择策略：
 
-- **不自动 `git init`**：这三个目录里有凭据和状态文件（`auths/`、`accounts/`、`config.json`、`data/`），盲目 init + commit 有泄露风险。
-- 管理器把它们标为 `update.strategy: none`，看板显示"手动更新"。
-- 用户若想纳入管理，自行 `git init` 并配好 `.gitignore` 后，改 `registry.json` 即可，管理器无需改动。
+- **`command`**：执行项目自己的升级命令。例：OpenViking 用
+  `python -m pip install -U openviking`。
+- **`release`**：从 GitHub 最新 Release 下载资产。
+  - `mode: binary`：下载 Windows zip，按 `checksums.txt` 校验，停进程 → 备份旧 exe →
+    替换 → 重启。例：wb2api-panel。
+  - `mode: overlay`：下载源码归档，按 `preserve` 列表保留本地状态（`accounts/` 等），
+    覆盖代码；更新前备份被覆盖文件，失败回滚。例：qoder2api-hub。
 
-> 这是个显式记录在案的取舍：方案不为"方便"而替用户决定要不要把这些目录变成仓库。
+安全顺序：查询最新版本 → 下载 → 校验 → 解压 → 预检目标 → 停服务 → 备份 → 覆盖 → 启动。
+任何一步失败都回滚；启动失败也会恢复旧文件并尝试拉起旧版本。备份落在
+`data/backups/<project>-<timestamp>/`（不入库）。
+
+仍然不做的事：不为"让它可更新"而 `git init` 或改造项目结构；`release` 只是显式更新动作。
+Elasticsearch 这类数据库仍保持手动升级（数据/配置迁移风险高）。
 
 ### 5.5 更新前置检查
 
-执行 pull 前必须校验，任一不满足则拒绝：
+执行更新前必须校验：
 
-- `git status --porcelain` 为空（有未提交改动 → 拒绝，提示先提交或 stash）
-- 不在 detached HEAD
-- 当前分支与 `registry.json` 里配置的 branch 一致
+- **git 策略**：不在 detached HEAD；当前分支与 `registry.json` 里配置的 branch 一致；
+  工作区有未提交改动时自动 stash，成功后恢复、失败回滚
+- **release 策略**：资产存在、checksum 匹配、目标文件在包内
+- **command 策略**：命令可执行；失败时恢复已停止的服务
 
 ---
 
@@ -339,7 +352,7 @@ LibreTV 的 remote 是 `LibreSpark/LibreTV`，本地有修改（`start-libretv.c
 | POST | `/api/projects/:id/start` | 启动 |
 | POST | `/api/projects/:id/stop` | 停止 |
 | POST | `/api/projects/:id/restart` | 重启（stop → 等端口释放 → start） |
-| POST | `/api/projects/:id/update` | 更新（git pull / fork 同步） |
+| POST | `/api/projects/:id/update` | 更新（git / command / release） |
 | GET | `/api/projects/:id/logs?lines=200` | 最近 N 行日志 |
 | POST | `/api/update-all` | 批量更新（顺序执行，逐个回显） |
 | POST | `/api/scan` | 扫描目录发现新项目（见 6.3） |

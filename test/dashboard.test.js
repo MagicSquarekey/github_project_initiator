@@ -161,6 +161,14 @@ test('不可更新项目显示手动更新', () => {
   assert.match(grid.children.join(''), /手动更新/);
 });
 
+test('非 git 项目配置 command/release 后显示更新按钮', () => {
+  const { render, grid } = loadDashboard();
+  render([proj({ id: 'a', name: 'A', updatable: true, git: { ...baseGit, isRepo: false } })]);
+  const h = grid.children.join('');
+  assert.match(h, /data-act="update" data-id="a"/);
+  assert.doesNotMatch(h, /手动更新/);
+});
+
 test('落后提交数显示 ↓N，更新按钮带计数', () => {
   const { render, grid } = loadDashboard();
   render([proj({ id: 'a', name: 'A', updatable: true, git: { ...baseGit, behind: 14 } })]);

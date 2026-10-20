@@ -63,6 +63,30 @@ export function getRuntime(projectId) {
 }
 
 /**
+ * 主服务就绪后的附加动作（如 OpenViking 的 bot gateway）。
+ *
+ * 附加动作失败只记日志，不影响主服务已经启动成功的事实。
+ *
+ * @param {any} project
+ */
+function runAfterReady(project) {
+  const cfg = project.start?.afterReady;
+  if (!cfg || typeof cfg.command !== 'string' || !cfg.command) return;
+
+  const log = createProjectLogger(project.id);
+  try {
+    spawnLineReader(cfg.command, Array.isArray(cfg.args) ? cfg.args : [], {
+      cwd: project.path,
+      detached: cfg.detached !== false,
+      onStdout: (line) => log.write(`[afterReady] ${line}`),
+      onStderr: (line) => log.write(`[afterReady] ${line}`),
+    });
+  } catch (err) {
+    log.write(`[afterReady] 启动失败：${err.message}`);
+  }
+}
+
+/**
  * @param {any} project
  * @returns {number[]}
  */
@@ -90,6 +114,12 @@ export async function startProject(project) {
   if (rt.phase === 'starting') {
     return { ok: true, message: '正在启动中', pid: rt.pid };
   }
+
+  /** 启动成功时顺带执行 afterReady 附加动作 */
+  const finish = (result) => {
+    if (result.ok) runAfterReady(project);
+    return result;
+  };
 
   const ports = portsOf(project);
 
@@ -167,7 +197,7 @@ export async function startProject(project) {
   // 日志匹配最快最准
   if (how === 'log') {
     rt.phase = 'running';
-    return { ok: true, message: '已启动（日志匹配就绪）', pid: spawned.pid };
+    return finish({ ok: true, message: '已启动（日志匹配就绪）', pid: spawned.pid });
   }
 
   // 超时（或启动器已退出）：用端口探测做最终裁决。
@@ -176,7 +206,7 @@ export async function startProject(project) {
   if (openPort) {
     rt.phase = 'running';
     projectLog.write(`[info] 端口 ${openPort} 已就绪，判定为启动成功`);
-    return { ok: true, message: `已启动（端口 ${openPort} 就绪）`, pid: spawned.pid };
+    return finish({ ok: true, message: `已启动（端口 ${openPort} 就绪）`, pid: spawned.pid });
   }
 
   // 端口没起来，但启动器已退出：说明脚本自己跑完了（可能是构建步骤，也可能是失败）
@@ -184,7 +214,7 @@ export async function startProject(project) {
     // 无端口项目无法用端口验证，只能信任"启动器正常退出"
     rt.phase = 'running';
     projectLog.write('[info] 启动器已退出且无端口可探测，判定为启动成功');
-    return { ok: true, message: '已启动（启动器已退出）', pid: spawned.pid };
+    return finish({ ok: true, message: '已启动（启动器已退出）', pid: spawned.pid });
   }
 
   rt.phase = 'failed';
@@ -221,6 +251,18 @@ export async function stopProject(project) {
         ...(project.stop?.port ? [project.stop.port] : []),
       ].filter(Number.isInteger);
       targets = await pidsOnPorts(ports);
+
+      // 端口只能定位到真正监听的服务进程；有些项目还有一层包装器/伴随进程
+      // （如 OpenViking 的 openviking-server.exe 和 vikingbot.exe），
+      // 它们会锁住 exe，导致 pip/覆盖更新失败。这里一并回收。
+      const extraImages = [
+        ...(project.stop?.imageName ? [project.stop.imageName] : []),
+        ...(Array.isArray(project.stop?.imageNames) ? project.stop.imageNames : []),
+      ];
+      for (const image of extraImages) {
+        targets.push(...(await pidsByImageName(image)));
+      }
+      targets = [...new Set(targets)];
     } else if (strategy === 'procname') {
       targets = await pidsByImageName(project.stop.imageName);
     } else if (strategy === 'command') {

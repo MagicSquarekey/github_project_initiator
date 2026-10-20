@@ -168,6 +168,51 @@ test('未知 update 策略被拒', () => {
   assert.match(r.errors.join(), /strategy/);
 });
 
+test('command / release 更新策略结构校验', () => {
+  assert.equal(
+    check([validProject({ update: { strategy: 'command', command: 'node', args: ['-v'] } })]).valid,
+    true,
+  );
+  assert.equal(check([validProject({ update: { strategy: 'command' } })]).valid, false);
+  assert.equal(
+    check([validProject({ update: { strategy: 'command', command: 'node', args: 'x' } })]).valid,
+    false,
+  );
+
+  const binary = { strategy: 'release', repo: 'owner/repo', mode: 'binary', target: 'app.exe' };
+  assert.equal(check([validProject({ update: binary })]).valid, true);
+  assert.equal(
+    check([validProject({ update: { ...binary, mode: 'overlay', target: undefined } })]).valid,
+    true,
+  );
+  assert.equal(check([validProject({ update: { ...binary, repo: '' } })]).valid, false);
+  assert.equal(check([validProject({ update: { ...binary, mode: 'yolo' } })]).valid, false);
+  assert.equal(check([validProject({ update: { ...binary, target: undefined } })]).valid, false);
+  assert.equal(check([validProject({ update: { ...binary, stopBefore: 'yes' } })]).valid, false);
+});
+
+test('start.afterReady 结构校验', () => {
+  const ok = validProject({
+    start: {
+      command: 'cmd.exe',
+      args: ['/c', 'x.bat'],
+      detached: true,
+      afterReady: { command: 'cmd.exe', args: ['/c', 'bot.cmd'] },
+    },
+  });
+  assert.equal(check([ok]).valid, true, check([ok]).errors.join('\n'));
+
+  const missing = validProject({
+    start: { command: 'cmd.exe', args: ['/c', 'x.bat'], afterReady: { args: [] } },
+  });
+  assert.equal(check([missing]).valid, false);
+
+  const badArgs = validProject({
+    start: { command: 'cmd.exe', args: ['/c', 'x.bat'], afterReady: { command: 'cmd.exe', args: 'x' } },
+  });
+  assert.equal(check([badArgs]).valid, false);
+});
+
 test('version 静态覆盖必须是非空字符串', () => {
   assert.equal(check([validProject({ version: '1.2.3' })]).valid, true);
   assert.equal(check([validProject({ version: '' })]).valid, false);

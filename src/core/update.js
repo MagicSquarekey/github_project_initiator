@@ -25,7 +25,27 @@ import {
   stashPush,
   stashPop,
 } from './git.js';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { exec } from '../util/exec.js';
 import { logger } from '../util/logger.js';
+import { probeProject } from './probe.js';
+import { stopProject, startProject } from './process.js';
+import { detectVersion, recordVersion, clearVersionCache } from './version.js';
+import {
+  fetchLatestRelease,
+  downloadFile,
+  verifyChecksum,
+  extractZip,
+  contentRoot,
+  findFile,
+  applyOverlay,
+  replaceBinary,
+  restoreBackup,
+  globMatch,
+} from './release.js';
+import { ROOT } from './registry.js';
 
 /**
  * @typedef {Object} UpdateResult
@@ -35,7 +55,221 @@ import { logger } from '../util/logger.js';
  * @property {boolean} [alreadyUpToDate]
  * @property {boolean} [stashed] 是否自动暂存过本地改动
  * @property {boolean} [stashRestored] 暂存的改动是否已恢复
+ * @property {string} [backup] 非 git 更新的备份目录
+ * @property {string} [fromVersion]
+ * @property {string} [toVersion]
  */
+
+/**
+ * @returns {string}
+ */
+function timestamp() {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+}
+
+/**
+ * @param {any} project
+ * @returns {string}
+ */
+function backupDirFor(project) {
+  const base = process.env.GPI_BACKUP_DIR || path.join(ROOT, 'data', 'backups');
+  const dir = path.join(base, `${project.id}-${timestamp()}`);
+  fs.mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
+/**
+ * @param {any} project
+ * @returns {Promise<{ ok: boolean, message: string }>}
+ */
+async function tryStart(project) {
+  try {
+    return await startProject(project);
+  } catch (err) {
+    return { ok: false, message: err.message };
+  }
+}
+
+/**
+ * @param {string} a
+ * @param {string} b
+ * @returns {boolean}
+ */
+function versionsEqual(a, b) {
+  const norm = (v) => String(v).trim().replace(/^v/i, '');
+  return norm(a) === norm(b);
+}
+
+/**
+ * command 策略：执行项目自己的升级命令（如 pip install -U）。
+ *
+ * @param {any} project
+ * @returns {Promise<UpdateResult>}
+ */
+async function updateByCommand(project) {
+  const cfg = project.update ?? {};
+  const timeoutMs = Number.isInteger(cfg.timeoutMs) ? cfg.timeoutMs : 300000;
+  let stopped = false;
+
+  try {
+    const wasRunning = (await probeProject(project)).running;
+    if (wasRunning && cfg.stopBefore === true) {
+      const r = await stopProject(project);
+      if (!r.ok) return { ok: false, message: `更新前停止失败：${r.message}` };
+      stopped = true;
+    }
+
+    const r = await exec(cfg.command, Array.isArray(cfg.args) ? cfg.args : [], {
+      cwd: project.path,
+      timeoutMs,
+    });
+    const output = `${r.stdout}\n${r.stderr}`.trim();
+
+    if (!r.ok) {
+      if (stopped) await tryStart(project);
+      return { ok: false, message: `更新命令失败：${r.error}`, output };
+    }
+
+    clearVersionCache();
+    let started = false;
+    if (stopped && cfg.startAfter === true) {
+      const s = await startProject(project);
+      started = s.ok;
+      if (!s.ok) {
+        return { ok: false, message: `更新完成但启动失败：${s.message}`, output, started: false };
+      }
+    }
+
+    return { ok: true, message: '更新命令执行完成', output, stopped, started };
+  } catch (err) {
+    if (stopped) await tryStart(project);
+    return { ok: false, message: `更新失败：${err.message}` };
+  }
+}
+
+/**
+ * release 策略：从 GitHub 最新 Release 下载资产，校验后覆盖。
+ *
+ * 安全顺序：下载 → 校验 → 解压 → 预检目标 → 停服务 → 备份 → 覆盖 → 启动。
+ * 任何一步失败都回滚；启动失败也会回滚并尝试拉起旧版本。
+ *
+ * @param {any} project
+ * @returns {Promise<UpdateResult>}
+ */
+async function updateByRelease(project) {
+  const cfg = project.update ?? {};
+  const timeoutMs = Number.isInteger(cfg.timeoutMs) ? cfg.timeoutMs : 300000;
+  const work = fs.mkdtempSync(path.join(os.tmpdir(), 'gpi-update-'));
+  let stopped = false;
+  let backupDir = null;
+
+  try {
+    const latest = await fetchLatestRelease(cfg.repo, 30000);
+    const tag = String(latest.tag_name ?? '');
+    if (!tag) throw new Error('最新 Release 没有 tag_name');
+    const toVersion = tag.replace(/^v/i, '');
+    const current = await detectVersion(project);
+
+    if (current && versionsEqual(current, toVersion)) {
+      return { ok: true, message: `已是最新（${current}）`, alreadyUpToDate: true, toVersion };
+    }
+
+    let asset;
+    if (cfg.mode === 'binary') {
+      if (!cfg.asset) throw new Error('mode=binary 需要配置 update.asset');
+      asset = (latest.assets ?? []).find((a) => globMatch(cfg.asset, a.name));
+      if (!asset) throw new Error(`Release ${tag} 没有匹配 ${cfg.asset} 的资产`);
+    } else if (cfg.asset) {
+      asset = (latest.assets ?? []).find((a) => globMatch(cfg.asset, a.name));
+      if (!asset) throw new Error(`Release ${tag} 没有匹配 ${cfg.asset} 的资产`);
+    } else {
+      const url = latest.zipball_url ?? `https://github.com/${cfg.repo}/archive/refs/tags/${tag}.zip`;
+      asset = { name: `${cfg.repo.replace('/', '-')}-${tag}.zip`, browser_download_url: url };
+    }
+
+    const zipPath = path.join(work, 'asset.zip');
+    await downloadFile(asset.browser_download_url, zipPath, timeoutMs);
+
+    if (cfg.checksums) {
+      const sums = (latest.assets ?? []).find((a) => a.name === cfg.checksums);
+      if (!sums) throw new Error(`Release ${tag} 没有 ${cfg.checksums}`);
+      const sumsPath = path.join(work, cfg.checksums);
+      await downloadFile(sums.browser_download_url, sumsPath, 60000);
+      verifyChecksum(zipPath, fs.readFileSync(sumsPath, 'utf8'), asset.name);
+    }
+
+    const extractDir = path.join(work, 'extract');
+    extractZip(zipPath, extractDir);
+    const root = contentRoot(extractDir, Number.isInteger(cfg.stripComponents) ? cfg.stripComponents : 0);
+
+    let binarySource = null;
+    if (cfg.mode === 'binary') {
+      binarySource = findFile(root, cfg.target);
+      if (!binarySource) throw new Error(`更新包中找不到 ${cfg.target}`);
+    }
+
+    // —— 所有下载/校验/解压完成后再停服务 ——
+    const wasRunning = (await probeProject(project)).running;
+    if (wasRunning && cfg.stopBefore === true) {
+      const r = await stopProject(project);
+      if (!r.ok) throw new Error(`更新前停止失败：${r.message}`);
+      stopped = true;
+    }
+
+    backupDir = backupDirFor(project);
+    if (cfg.mode === 'binary') {
+      replaceBinary(binarySource, path.join(project.path, cfg.target), backupDir, cfg.target);
+    } else {
+      applyOverlay(root, project.path, cfg.preserve ?? [], backupDir);
+    }
+
+    recordVersion(project.id, toVersion);
+    clearVersionCache();
+
+    let started = false;
+    if (stopped && cfg.startAfter === true) {
+      const s = await startProject(project);
+      started = s.ok;
+      if (!s.ok) {
+        restoreBackup(project.path, backupDir);
+        const old = await tryStart(project);
+        return {
+          ok: false,
+          message: `更新到 ${tag} 后启动失败，已回滚：${s.message}${old.ok ? '（旧版本已重新启动）' : ''}`,
+          backup: backupDir,
+        };
+      }
+    }
+
+    return {
+      ok: true,
+      message: `已更新到 ${tag}${current ? `（原 ${current}）` : ''}`,
+      fromVersion: current,
+      toVersion,
+      backup: backupDir,
+      stopped,
+      started,
+    };
+  } catch (err) {
+    if (backupDir) {
+      try {
+        restoreBackup(project.path, backupDir);
+      } catch {
+        // 回滚尽力而为，错误信息里保留原始失败原因
+      }
+    }
+    if (stopped) await tryStart(project);
+    return {
+      ok: false,
+      message: `更新失败${backupDir ? '，已回滚' : ''}：${err.message}`,
+      backup: backupDir,
+    };
+  } finally {
+    fs.rmSync(work, { recursive: true, force: true });
+  }
+}
 
 /**
  * 更新单个项目。
@@ -45,6 +279,9 @@ import { logger } from '../util/logger.js';
  */
 export async function updateProject(project) {
   const strategy = project.update?.strategy ?? 'none';
+
+  if (strategy === 'command') return updateByCommand(project);
+  if (strategy === 'release') return updateByRelease(project);
 
   if (strategy === 'none') {
     return {

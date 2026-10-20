@@ -11,6 +11,8 @@ data/registry.json
 data/registry.local.json
 data/logs/
 data/state.json
+data/versions.json
+data/backups/
 data/*.tmp
 data/*.bak
 

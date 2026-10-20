@@ -27,7 +27,7 @@ const VALID_KINDS = [
   'observe-only',
 ];
 const VALID_STOP_STRATEGIES = ['port', 'procname', 'command', 'none'];
-const VALID_UPDATE_STRATEGIES = ['git', 'git-fork', 'none'];
+const VALID_UPDATE_STRATEGIES = ['git', 'git-fork', 'command', 'release', 'none'];
 
 /** 管理器自身端口，注册表校验时用来检测被管项目是否冲突 */
 export const MANAGER_PORT = 8780;
@@ -88,6 +88,18 @@ function withExpandedPaths(project) {
         typeof project.start.command === 'string' ? expandPath(project.start.command) : project.start.command,
       args: Array.isArray(project.start.args) ? project.start.args.map(expandPath) : project.start.args,
     };
+    if (project.start.afterReady) {
+      next.start.afterReady = {
+        ...project.start.afterReady,
+        command:
+          typeof project.start.afterReady.command === 'string'
+            ? expandPath(project.start.afterReady.command)
+            : project.start.afterReady.command,
+        args: Array.isArray(project.start.afterReady.args)
+          ? project.start.afterReady.args.map(expandPath)
+          : project.start.afterReady.args,
+      };
+    }
   }
   if (project.stop) {
     next.stop = {
@@ -106,6 +118,13 @@ function withExpandedPaths(project) {
       args: Array.isArray(project.versionCommand.args)
         ? project.versionCommand.args.map(expandPath)
         : project.versionCommand.args,
+    };
+  }
+  if (project.update?.strategy === 'command') {
+    next.update = {
+      ...project.update,
+      command: typeof project.update.command === 'string' ? expandPath(project.update.command) : project.update.command,
+      args: Array.isArray(project.update.args) ? project.update.args.map(expandPath) : project.update.args,
     };
   }
   return next;
@@ -191,6 +210,22 @@ function validateProject(p, index) {
   if (start?.command === null && !['cli-tool', 'observe-only'].includes(p.kind)) {
     errors.push(`${where}.start.command 为 null 仅允许用于 kind=cli-tool 或 observe-only`);
   }
+  if (start?.afterReady !== undefined) {
+    const ar = start.afterReady;
+    if (!ar || typeof ar !== 'object' || Array.isArray(ar)) {
+      errors.push(`${where}.start.afterReady: 必须是对象`);
+    } else {
+      if (typeof ar.command !== 'string' || ar.command.length === 0) {
+        errors.push(`${where}.start.afterReady.command: 必填字符串`);
+      }
+      if (ar.args !== undefined && (!Array.isArray(ar.args) || ar.args.some((a) => typeof a !== 'string'))) {
+        errors.push(`${where}.start.afterReady.args: 必须是字符串数组`);
+      }
+      if (ar.detached !== undefined && typeof ar.detached !== 'boolean') {
+        errors.push(`${where}.start.afterReady.detached: 必须是布尔值`);
+      }
+    }
+  }
 
   // stop
   const stop = p.stop;
@@ -209,6 +244,19 @@ function validateProject(p, index) {
           if (!Number.isInteger(pt) || pt < 1 || pt > 65535) {
             errors.push(`${where}.stop: 端口 "${pt}" 不是有效端口号`);
           }
+        }
+      }
+      if (stop.imageName !== undefined) {
+        if (typeof stop.imageName !== 'string' || !stop.imageName.toLowerCase().endsWith('.exe')) {
+          errors.push(`${where}.stop.imageName: 必须以 .exe 结尾`);
+        }
+      }
+      if (stop.imageNames !== undefined) {
+        if (
+          !Array.isArray(stop.imageNames) ||
+          stop.imageNames.some((n) => typeof n !== 'string' || !n.toLowerCase().endsWith('.exe'))
+        ) {
+          errors.push(`${where}.stop.imageNames: 必须是 .exe 字符串数组`);
         }
       }
     }
@@ -254,6 +302,55 @@ function validateProject(p, index) {
     errors.push(`${where}.update: 必填对象`);
   } else if (!VALID_UPDATE_STRATEGIES.includes(update.strategy)) {
     errors.push(`${where}.update.strategy: 必须是 ${VALID_UPDATE_STRATEGIES.join(' / ')}`);
+  } else if (update.strategy === 'command') {
+    if (typeof update.command !== 'string' || update.command.length === 0) {
+      errors.push(`${where}.update.command: strategy=command 时必填字符串`);
+    }
+    if (update.args !== undefined && (!Array.isArray(update.args) || update.args.some((a) => typeof a !== 'string'))) {
+      errors.push(`${where}.update.args: 必须是字符串数组`);
+    }
+    if (update.timeoutMs !== undefined && (typeof update.timeoutMs !== 'number' || update.timeoutMs < 0)) {
+      errors.push(`${where}.update.timeoutMs: 必须是非负数`);
+    }
+  } else if (update.strategy === 'release') {
+    if (typeof update.repo !== 'string' || !/^[\w.-]+\/[\w.-]+$/.test(update.repo)) {
+      errors.push(`${where}.update.repo: strategy=release 时必填 owner/name`);
+    }
+    if (!['binary', 'overlay'].includes(update.mode)) {
+      errors.push(`${where}.update.mode: 必须是 binary / overlay`);
+    }
+    if (update.mode === 'binary' && (typeof update.target !== 'string' || update.target.length === 0)) {
+      errors.push(`${where}.update.target: mode=binary 时必填目标文件名`);
+    }
+    if (update.asset !== undefined && typeof update.asset !== 'string') {
+      errors.push(`${where}.update.asset: 必须是字符串（资产名 glob）`);
+    }
+    if (update.checksums !== undefined && typeof update.checksums !== 'string') {
+      errors.push(`${where}.update.checksums: 必须是字符串（checksums 资产名）`);
+    }
+    if (
+      update.preserve !== undefined &&
+      (!Array.isArray(update.preserve) || update.preserve.some((x) => typeof x !== 'string'))
+    ) {
+      errors.push(`${where}.update.preserve: 必须是字符串数组`);
+    }
+    if (
+      update.stripComponents !== undefined &&
+      (!Number.isInteger(update.stripComponents) || update.stripComponents < 0)
+    ) {
+      errors.push(`${where}.update.stripComponents: 必须是非负整数`);
+    }
+    if (update.timeoutMs !== undefined && (typeof update.timeoutMs !== 'number' || update.timeoutMs < 0)) {
+      errors.push(`${where}.update.timeoutMs: 必须是非负数`);
+    }
+  }
+
+  if (update && typeof update === 'object') {
+    for (const key of ['stopBefore', 'startAfter']) {
+      if (update[key] !== undefined && typeof update[key] !== 'boolean') {
+        errors.push(`${where}.update.${key}: 必须是布尔值`);
+      }
+    }
   }
 
   // 可选：版本号覆盖 / 动态版本命令
