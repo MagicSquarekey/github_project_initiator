@@ -230,6 +230,16 @@ wb2api-panel 已纳入启停测试范围（2026-10-19 实机验证通过）。
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-startup.ps1
 ```
 
+注册的是**当前用户 HKCU Run 键**（登录时触发），不需要管理员权限；实际启动由
+`scripts/start-manager-hidden.vbs` 完成，全程无窗口。计划任务（`Register-ScheduledTask`）
+在普通用户下会被系统拒绝（拒绝访问），所以没有采用。
+
+卸载：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-startup.ps1 -Uninstall
+```
+
 管理器只提供看板和启停入口，**不会自动启动被管项目**。
 
 ## 已知限制

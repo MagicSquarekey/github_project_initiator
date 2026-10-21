@@ -585,6 +585,9 @@ github_project_initiator/
 | 8 | 目录浏览接口会暴露本机目录结构 | 只监听 127.0.0.1；CORS 只放行本机来源与 `file://`；只列目录不读文件 | 若将来要多机访问，必须先加鉴权 |
 | 9 | 自动识别是启发式，可能猜错启动方式或端口 | 只预填表单，不自动保存；用户确认后才写盘 | 识别不到时手填，`notes` 里记录端口来源 |
 | 10 | 通过看板写 registry 可能写坏 | 归一化 + `validateRegistry` + 原子写；错误逐条返回 | 保留 `registry.example.json` 作为可回退模板 |
+| 11 | 项目自带启动脚本会弹浏览器（gpp 的 `start http://localhost:3000`、AutoTestHub 的 `shell.Run "http://localhost:5173"`） | 管理器侧提供等价的无浏览器启动器：`scripts/start-gpp-hidden.cmd`、`scripts/start-autotesthub-hidden.vbs`；不改项目文件 | 新项目接入时若脚本会弹窗，按同样方式加一个管理器侧包装器 |
+| 12 | `detached` 启动 `powershell.exe` 时没有控制台，`Start-Process` 会静默失效（退出码 0、什么都不做） | 启动命令必须经 `cmd.exe` 或 `wscript.exe` 包装；`spawnLineReader` 只直接启动 `cmd.exe` / `wscript.exe` / 可执行文件 | 若确实要用 PowerShell 编排，写成 `.ps1` 文件用 `cmd /c powershell -File` 调，别把 `-Command` 作为 detached 启动命令 |
+| 13 | `Register-ScheduledTask` 注册登录任务在普通用户下被拒绝（拒绝访问） | 开机自启用 HKCU Run 键 + `scripts/start-manager-hidden.vbs`，无需管理员 | 若用户坚持用计划任务，需以管理员身份执行安装脚本 |
 
 ---
 
