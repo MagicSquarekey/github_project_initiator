@@ -154,20 +154,31 @@ main { padding: 20px 22px 56px; max-width: 1440px; margin: 0 auto; }
 .led.busy { background: var(--amber); animation: pulse 1.1s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: .3; } }
 
-/* 元信息行：固定两行高度，避免卡片因内容多少而错落 */
+/* 元信息行：统一小药丸。每个药丸是原子元素（点+文字不会被换行拆开），
+   整行自动换行也保持整齐，不再用 · 分隔符导致行尾悬挂 */
 .meta {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 5px 12px;
-  font-size: 12px; color: var(--text-dim); min-height: 38px;
+  display: flex; flex-wrap: wrap; gap: 5px; align-items: center; align-content: flex-start;
+  font-size: 12px; color: var(--text-dim); min-height: 27px;
 }
-.meta .ver { color: var(--accent); font-weight: 600; }
-.meta a { color: var(--blue); text-decoration: none; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
-.meta a:hover { text-decoration: underline; }
-.meta .sep { color: var(--text-faint); }
-.meta .warn   { color: var(--amber); }
-.meta .behind { color: var(--blue); font-weight: 650; font-variant-numeric: tabular-nums; }
-.meta .mono   { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
-/* 子服务状态点：meta 行里也要有确定尺寸，不能依赖卡片上下文 */
-.meta .led { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; vertical-align: 0; }
+.meta .pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  height: 22px; padding: 0 8px; border-radius: 6px; max-width: 100%;
+  background: var(--code-bg); border: 1px solid var(--border);
+  font-size: 11px; line-height: 1; white-space: nowrap;
+}
+.meta .pill > a, .meta .pill > span { overflow: hidden; text-overflow: ellipsis; }
+.meta .pill a { color: var(--blue); text-decoration: none; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+.meta .pill a:hover { text-decoration: underline; }
+.meta .pill.ver {
+  color: var(--accent); font-weight: 600;
+  border-color: color-mix(in srgb, var(--accent) 32%, var(--border));
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+.meta .pill.mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+.meta .pill.warn { color: var(--amber); border-color: color-mix(in srgb, var(--amber) 38%, var(--border)); }
+.meta .pill.info { color: var(--blue); border-color: color-mix(in srgb, var(--blue) 38%, var(--border)); font-weight: 650; }
+/* 子服务状态点：药丸内的小圆点 */
+.meta .pill .led { width: 7px; height: 7px; margin: 0; }
 
 .error {
   font-size: 12px; color: var(--red);
@@ -781,59 +792,66 @@ function fmtVersion(v) {
   return /^v/i.test(s) ? s : `v${s}`;
 }
 
+/** 元信息小药丸：cls 附加配色，html 已是转义后的内容 */
+function pill(cls, html, title) {
+  const t = title ? ` title="${esc(title)}"` : '';
+  return `<span class="pill ${cls}"${t}>${html}</span>`;
+}
+
 function metaHtml(p) {
   const parts = [];
-  const sep = '<span class="sep">·</span>';
 
   // 版本号放最前面：一眼能看到各项目当前版本
   if (p.version) {
-    parts.push(`<span class="mono ver" title="${esc(t('versionLabel'))}">${esc(fmtVersion(p.version))}</span>`);
+    parts.push(pill('ver', esc(fmtVersion(p.version)), t('versionLabel')));
   } else {
-    parts.push(`<span class="warn" title="${esc(t('versionLabel'))}">${esc(t('versionUnknown'))}</span>`);
+    parts.push(pill('warn', esc(t('versionUnknown')), t('versionLabel')));
   }
 
-  // 第一行：地址 / 类型说明
+  // 地址 / 类型说明
   if (p.url) {
-    parts.push(`<a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.url.replace(/^https?:\/\//,''))}</a>`);
+    parts.push(pill('', `<a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.url.replace(/^https?:\/\//,''))}</a>`));
   } else if (p.kind === 'cli-tool') {
-    parts.push(`<span>${esc(t('cliTool'))}</span>`);
+    parts.push(pill('', esc(t('cliTool'))));
   } else if (p.kind === 'desktop-app') {
-    parts.push(`<span>${esc(t('desktopApp'))}</span>`);
+    parts.push(pill('', esc(t('desktopApp'))));
   }
 
-  // 多服务项目：逐个列出子服务端口与就绪状态（如 AutoTestHub 的 backend/frontend）
+  // 多服务项目：每个子服务一个药丸（状态点 + 链接绑定在一起，不会拆行）
   if (p.services?.length) {
     for (const s of p.services) {
       const up = (p.openPorts ?? []).includes(s.port);
-      const dot = up ? '<span class="led on"></span>' : '<span class="led off"></span>';
-      const link = s.url ? `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.label)}:${s.port}</a>` : `${esc(s.label)}:${s.port}`;
-      parts.push(`${dot}${link}`);
+      const dot = `<span class="led ${up ? 'on' : 'off'}"></span>`;
+      const link = s.url
+        ? `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.label)}:${s.port}</a>`
+        : `<span>${esc(s.label)}:${s.port}</span>`;
+      parts.push(pill('', dot + link));
     }
   }
 
   // 运行时信息
-  if (p.running && p.pids.length) parts.push(`<span class="mono">PID ${esc(p.pids.join(', '))}</span>`);
-  if (p.running && p.uptimeSec != null) parts.push(`<span class="mono">${esc(fmtUptime(p.uptimeSec))}</span>`);
-  if (p.runningVia === 'procname') parts.push(`<span class="warn">${esc(p.stop?.imageName || 'proc')}</span>`);
+  if (p.running && p.pids.length) parts.push(pill('mono', `PID ${esc(p.pids.join(', '))}`));
+  if (p.running && p.uptimeSec != null) parts.push(pill('mono', esc(fmtUptime(p.uptimeSec))));
+  if (p.runningVia === 'procname') parts.push(pill('warn', esc(p.stop?.imageName || 'proc')));
 
   // git 信息
   if (p.git.isRepo) {
-    parts.push(`<span class="mono">⎇ ${esc(p.git.branch ?? '?')}</span>`);
-    if (p.git.dirty) parts.push(`<span class="warn">● ${esc(t('dirty'))}</span>`);
-    if (p.git.behind > 0) parts.push(`<span class="behind">↓${p.git.behind}</span>`);
-    if (p.git.ahead > 0) parts.push(`<span>↑${p.git.ahead}</span>`);
+    parts.push(pill('mono', `⎇ ${esc(p.git.branch ?? '?')}`));
+    if (p.git.dirty) parts.push(pill('warn', `● ${esc(t('dirty'))}`));
+    if (p.git.behind > 0) parts.push(pill('info', `↓${p.git.behind}`));
+    if (p.git.ahead > 0) parts.push(pill('mono', `↑${p.git.ahead}`));
   } else {
-    parts.push(`<span class="warn">${esc(t('nonGit'))}</span>`);
+    parts.push(pill('warn', esc(t('nonGit'))));
   }
 
-  return parts.length ? `<div class="meta">${parts.join(sep)}</div>` : '<div class="meta"></div>';
+  return `<div class="meta">${parts.join('')}</div>`;
 }
 
 function actionsHtml(p) {
   const dis = busy.has(p.id) ? 'disabled' : '';
   const b = [];
-  // 管理器自身：启停/重启在物理上没有意义（停掉自己看板就没了），只保留日志。
-  if (!p.self) {
+  // 管理器自身与 observe-only 条目：启停/重启/更新没有意义（或没有权限），只保留日志。
+  if (!p.self && p.kind !== 'observe-only') {
     if (p.running) {
       b.push(`<button data-act="stop" data-id="${esc(p.id)}" ${dis}>${esc(t('stop'))}</button>`);
       b.push(`<button data-act="restart" data-id="${esc(p.id)}" ${dis}>${esc(t('restart'))}</button>`);

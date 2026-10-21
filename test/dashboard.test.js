@@ -138,6 +138,21 @@ test('不可启动项目不渲染启动按钮', () => {
   assert.doesNotMatch(grid.children.join(''), /data-act="start"/);
 });
 
+test('observe-only 项目运行中也只保留日志/移除，不显示无效的启停/更新', () => {
+  const { render, grid } = loadDashboard();
+  render([proj({
+    id: 'pg', name: 'PostgreSQL', kind: 'observe-only',
+    running: true, startable: false, updatable: false,
+  })]);
+  const h = grid.children.join('');
+  assert.doesNotMatch(h, /data-act="stop"/);
+  assert.doesNotMatch(h, /data-act="restart"/);
+  assert.doesNotMatch(h, /data-act="start"/);
+  assert.doesNotMatch(h, /data-act="update"/);
+  assert.match(h, /data-act="logs" data-id="pg"/);
+  assert.match(h, /data-act="remove" data-id="pg"/);
+});
+
 test('自身项目只保留日志按钮，不渲染启停/重启/更新', () => {
   const { render, grid } = loadDashboard();
   render([proj({
