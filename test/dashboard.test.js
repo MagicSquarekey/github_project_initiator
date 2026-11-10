@@ -92,7 +92,7 @@ function loadDashboard() {
   const keys = Object.keys(sandbox);
   const fn = new Function(
     ...keys,
-    `${body}\nreturn { render, errors, busy, snapshot, applyLang, applyTheme, I18N, t,
+    `${body}\nreturn { render, hostHtml, errors, busy, snapshot, applyLang, applyTheme, I18N, t,
       field, buildAddPayload, validateAddPayload, applyDetection, syncAddForm, resetAddForm };`,
   );
   return { ...fn(...keys.map((k) => sandbox[k])), grid };
@@ -115,6 +115,46 @@ test('渲染所有项目卡片', () => {
   const { render, grid } = loadDashboard();
   render([proj({ id: 'a', name: 'A' }), proj({ id: 'b', name: 'B' })]);
   assert.equal(grid.children.length, 2);
+});
+
+test('多地址：urls 全部渲染为可点击链接', () => {
+  const { render, grid } = loadDashboard();
+  render([
+    proj({
+      id: 'a',
+      name: 'A',
+      urls: ['http://127.0.0.1:8780', 'http://100.65.61.59:8780'],
+    }),
+  ]);
+  const h = grid.children.join('');
+  assert.match(h, /href="http:\/\/127\.0\.0\.1:8780"/);
+  assert.match(h, /href="http:\/\/100\.65\.61\.59:8780"/);
+});
+
+test('资源条：渲染 CPU/内存/磁盘/GPU，缺数据时返回空', () => {
+  const { hostHtml } = loadDashboard();
+  const html = hostHtml({
+    hostname: 'edge',
+    cpu: { usage: 0.25, cores: 8, perCore: [0.1, 0.2] },
+    memory: { usage: 0.5, usedBytes: 8 * 2 ** 30, totalBytes: 16 * 2 ** 30 },
+    disks: [{ label: 'C:', usage: 0.4, usedBytes: 4 * 2 ** 30, totalBytes: 10 * 2 ** 30 }],
+    gpus: [
+      {
+        name: 'NVIDIA GeForce GTX 1660 SUPER',
+        util: 0.12,
+        memUsedBytes: 2 * 2 ** 30,
+        memTotalBytes: 6 * 2 ** 30,
+        tempC: 48,
+      },
+    ],
+  });
+  assert.match(html, /25%/);
+  assert.match(html, /8\.0 GB \/ 16\.0 GB/);
+  assert.match(html, /C:/);
+  assert.match(html, /1660 SUPER/);
+  assert.match(html, /48°C/);
+  assert.equal(hostHtml(null), '');
+  assert.equal(hostHtml({}), '');
 });
 
 test('运行中项目带 running 类与停止按钮', () => {

@@ -13,6 +13,22 @@ import { loadRegistry, MANAGER_PORT } from './core/registry.js';
 import { describeAll } from './api/projects.js';
 import { fetch } from './core/git.js';
 import { logger } from './util/logger.js';
+import os from 'node:os';
+
+/**
+ * 监听地址：默认只开本机回环。
+ *
+ * 跨机访问（Tailscale / 内网）用 GPI_HOST 覆盖，例如：
+ *   GPI_HOST=100.65.61.59 node src/index.js   # 只绑定 Tailscale 地址
+ *   GPI_HOST=0.0.0.0 node src/index.js        # 所有网卡（务必配防火墙）
+ * 管理器没有鉴权，非回环监听只应出现在可信内网/Tailscale 里。
+ */
+const HOST = process.env.GPI_HOST || '127.0.0.1';
+
+/** 是不是回环地址（含公网绑定时用于安全提示） */
+function isLoopback(host) {
+  return ['127.0.0.1', 'localhost', '::1', '[::1]'].includes(host);
+}
 
 /** 后台 git fetch 间隔：5 分钟。频繁 fetch 对 GitHub 是无谓压力 */
 const FETCH_INTERVAL_MS = 5 * 60 * 1000;
@@ -73,14 +89,30 @@ async function main() {
     process.exit(1);
   });
 
-  server.listen(MANAGER_PORT, '127.0.0.1', () => {
-    logger.info(`管理器已启动：http://127.0.0.1:${MANAGER_PORT}`, { port: MANAGER_PORT });
+  server.listen(MANAGER_PORT, HOST, () => {
+    logger.info(`管理器已启动：http://${HOST}:${MANAGER_PORT}`, { port: MANAGER_PORT, host: HOST });
     console.log('');
     console.log(`  github_project_initiator 管理面板`);
-    console.log(`  http://127.0.0.1:${MANAGER_PORT}`);
+    if (HOST === '0.0.0.0') {
+      // 绑所有网卡时列出可访问地址（Tailscale / 内网），方便直接点开
+      for (const list of Object.values(os.networkInterfaces())) {
+        for (const iface of list ?? []) {
+          if (iface.family === 'IPv4' && !iface.internal) {
+            console.log(`  http://${iface.address}:${MANAGER_PORT}`);
+          }
+        }
+      }
+    } else {
+      console.log(`  http://${HOST}:${MANAGER_PORT}`);
+    }
     console.log('');
     console.log('  按 Ctrl+C 停止管理器（不影响已启动的项目）');
     console.log('');
+    if (!isLoopback(HOST)) {
+      logger.warn('管理器监听在非回环地址且没有鉴权，请只在可信内网/Tailscale 暴露', { host: HOST });
+      console.log('  ⚠ 无鉴权：只应暴露在可信内网/Tailscale，不要开到公网');
+      console.log('');
+    }
   });
 
   // 优雅退出：管理器退出不该带走被管的 detached 子进程

@@ -8,7 +8,8 @@
 
 import path from 'node:path';
 import fs from 'node:fs';
-import { loadRegistry, portsOf, VERSION } from '../core/registry.js';
+import os from 'node:os';
+import { loadRegistry, portsOf, VERSION, MANAGER_PORT } from '../core/registry.js';
 import { probeProject } from '../core/probe.js';
 import { detectVersion } from '../core/version.js';
 import { gitSnapshot } from '../core/git.js';
@@ -16,6 +17,125 @@ import { startProject, stopProject, restartProject, getRuntime } from '../core/p
 import { updateProject } from '../core/update.js';
 import { readProjectLog } from '../util/logger.js';
 import { logger } from '../util/logger.js';
+
+/**
+ * 虚拟网卡/容器网桥：远程访问用不到，列出来只会添乱。
+ * 保留真实网卡（以太网/WLAN）、Tailscale 和常见 VPN（tun/tap）。
+ */
+const VIRTUAL_IFACE_RE = /vmnet|vmware|vbox|virtualbox|hyper-?v|vethernet|wsl|docker|podman|br-|virbr|veth|loopback|bluetooth|teredo|isatap/i;
+
+/** Tailscale 地址段 100.64.0.0/10 */
+function isTailscaleIp(ip) {
+  const m = /^100\.(\d+)\./.exec(ip);
+  return Boolean(m) && Number(m[1]) >= 64 && Number(m[1]) <= 127;
+}
+
+/** 本机所有非回环 IPv4（过滤虚拟网卡，Tailscale 排最前） */
+function localIPv4s() {
+  const out = [];
+  for (const [iface, list] of Object.entries(os.networkInterfaces())) {
+    if (VIRTUAL_IFACE_RE.test(iface)) continue;
+    for (const info of list ?? []) {
+      if (info.family !== 'IPv4' && info.family !== 4) continue;
+      if (info.internal) continue;
+      if (info.address.startsWith('169.254.')) continue; // link-local
+      out.push({ address: info.address, iface });
+    }
+  }
+  const rank = (a) => (isTailscaleIp(a.address) ? 0 : 1);
+  return out.sort((a, b) => rank(a) - rank(b) || a.iface.localeCompare(b.iface));
+}
+
+/** host（不含端口）是否为本机回环 */
+function isLoopbackHost(host) {
+  return ['127.0.0.1', 'localhost', '::1'].includes(host);
+}
+
+/** 从 Host 头（如 100.65.61.59:8780）取 hostname；非法返回 null */
+function hostnameOf(hostHeader) {
+  if (!hostHeader || typeof hostHeader !== 'string') return null;
+  if (!/^[A-Za-z0-9.:[\]-]{1,255}$/.test(hostHeader)) return null;
+  try {
+    return new URL(`http://${hostHeader}`).hostname.replace(/^\[|\]$/g, '');
+  } catch {
+    return null;
+  }
+}
+
+/** 是否从非回环地址访问（决定要不要展开远程 IP） */
+function isRemoteAccess(hostHeader) {
+  const host = hostnameOf(hostHeader);
+  return host !== null && !isLoopbackHost(host);
+}
+
+/**
+ * 把一个 URL 的 host 替换成本机每个 IPv4，保留端口、路径与查询串。
+ *
+ * 只在「远程访问 + 原 host 是本机地址」时展开；本地访问保持原样，
+ * 避免看板堆一排用不到的地址。
+ *
+ * @param {string} url
+ * @param {boolean} remote
+ * @returns {string[]}
+ */
+function expandUrl(url, remote) {
+  if (!url) return [];
+  if (!remote) return [url];
+  let base;
+  try {
+    base = new URL(url);
+  } catch {
+    return [url];
+  }
+
+  const host = base.hostname.replace(/^\[|\]$/g, '');
+  const locals = localIPv4s().map((i) => i.address);
+  if (!isLoopbackHost(host) && !locals.includes(host)) return [url];
+
+  const suffix = `${base.pathname === '/' ? '' : base.pathname}${base.search}${base.hash}`;
+  // 远程访问时回环地址指向的是客户端本机，没意义，直接省掉
+  const urls = isLoopbackHost(host) ? [] : [url];
+  const seen = new Set(urls);
+  for (const ip of locals) {
+    if (ip === host) continue;
+    const href = `${base.protocol}//${ip}${base.port ? `:${base.port}` : ''}${suffix}`;
+    if (!seen.has(href)) {
+      seen.add(href);
+      urls.push(href);
+    }
+  }
+  return urls.length > 0 ? urls : [url];
+}
+
+/**
+ * 管理器自身的可访问地址。
+ *
+ * - 远程访问：先给「当前正在使用的地址」，再列全部本机 IPv4（Tailscale 优先）；
+ * - 本地访问：只给当前地址，不堆远程链接。
+ *
+ * @param {string} [hostHeader] 请求的 Host 头
+ * @param {boolean} [remote]
+ * @returns {string[]}
+ */
+function selfUrls(hostHeader, remote = false) {
+  const fmt = (h) => `http://${h.includes(':') ? `[${h}]` : h}:${MANAGER_PORT}`;
+  const urls = [];
+  const add = (u) => {
+    if (u && !urls.includes(u)) urls.push(u);
+  };
+
+  const host = hostnameOf(hostHeader);
+  if (host) add(`http://${hostHeader}`); // 浏览器当前使用的地址（含端口/域名）
+
+  if (remote) {
+    for (const i of localIPv4s()) add(fmt(i.address));
+  } else if (urls.length === 0) {
+    const bind = process.env.GPI_HOST || '127.0.0.1';
+    add(fmt(bind === '0.0.0.0' || bind === '::' ? '127.0.0.1' : bind));
+  }
+  return urls;
+}
+
 
 /**
  * 注册表里声明的伴随服务（与主服务共同启停）。
@@ -69,7 +189,7 @@ function serviceListOf(project) {
  * @param {any} project
  * @returns {Promise<any>}
  */
-export async function describeProject(project) {
+export async function describeProject(project, options = {}) {
   const self = project.self === true;
   const [probe, git, version] = await Promise.all([
     probeProject(project),
@@ -130,6 +250,8 @@ export async function describeProject(project) {
 
     ports,
     url: project.url ?? null,
+    // 同一地址在本机每张网卡上的可点链接（远程访问用，不用记 IP）
+    urls: self ? selfUrls(options.host, options.remote) : expandUrl(project.url, options.remote),
     // 多服务/伴随服务清单，看板用来逐个显示就绪状态
     services,
     // 自身条目的运行时长来自进程本身；其他项目来自管理器的启动记录
@@ -223,9 +345,12 @@ function resolveStartScript(project) {
  *
  * @returns {Promise<{ projects: any[] }>}
  */
-export async function describeAll() {
+export async function describeAll(options = {}) {
   const { projects } = loadRegistry();
-  const described = await Promise.all(projects.map(describeProject));
+  const remote = isRemoteAccess(options.host);
+  const described = await Promise.all(
+    projects.map((p) => describeProject(p, { host: options.host, remote })),
+  );
   return { projects: described };
 }
 

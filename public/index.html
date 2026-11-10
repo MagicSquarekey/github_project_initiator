@@ -307,6 +307,26 @@ main { padding: 20px 22px 56px; max-width: 1440px; margin: 0 auto; }
   font-size: 12px; color: var(--text-dim); flex: 1; min-width: 0;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+
+/* 本机资源条（CPU / 内存 / 磁盘 / GPU） */
+.host-panel {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px;
+  margin-bottom: 12px; padding: 9px 14px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+  font-size: 12.5px; color: var(--text-dim);
+}
+.host-panel[hidden] { display: none; }
+.host-item { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+.host-item b { color: var(--text); font-weight: 600; }
+.host-bar {
+  width: 64px; height: 6px; border-radius: 3px; background: var(--btn-bg);
+  overflow: hidden; display: inline-block;
+}
+.host-bar > i { display: block; height: 100%; border-radius: 3px; background: var(--accent); }
+.host-bar.warn > i { background: var(--amber); }
+.host-bar.crit > i { background: var(--red); }
+.host-num { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 12px; }
+.host-title { color: var(--text-faint); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
 </style>
 </head>
 <body>
@@ -341,6 +361,7 @@ main { padding: 20px 22px 56px; max-width: 1440px; margin: 0 auto; }
 </header>
 
 <main>
+  <section class="host-panel" id="host-panel" hidden></section>
   <div class="grid" id="grid"></div>
   <div class="hint" id="hint" style="display:none" data-i18n="empty">没有项目。编辑 data/registry.json 添加。</div>
 </main>
@@ -510,6 +531,7 @@ const I18N = {
     selfLabel: '自身',
     selfHint: '管理器自身：状态由当前进程提供，不能在看板里启停或更新。升级请手动 git pull 后重启。',
     versionLabel: '版本', versionUnknown: '版本未知',
+    cpu: 'CPU', memory: '内存', disk: '磁盘', gpu: 'GPU', cores: '核', hostTitle: '本机资源',
     dirty: '有改动', ahead: '领先', behind: '落后',
     confirmStopAll: '将停止所有正在运行的项目（包括非本管理器启动的），确定？',
     confirmStartAll: '将启动所有未运行且可启动的项目，确定？',
@@ -612,6 +634,7 @@ const I18N = {
     selfLabel: 'self',
     selfHint: 'The manager itself: status comes from its own process; it cannot be started, stopped, or updated from this dashboard. Upgrade with git pull and a restart.',
     versionLabel: 'version', versionUnknown: 'version unknown',
+    cpu: 'CPU', memory: 'Memory', disk: 'Disk', gpu: 'GPU', cores: 'cores', hostTitle: 'Host',
     dirty: 'dirty', ahead: 'ahead', behind: 'behind',
     confirmStopAll: 'This stops every running project (including ones not started by this manager). Continue?',
     confirmStartAll: 'This starts every stopped and startable project. Continue?',
@@ -728,6 +751,8 @@ function applyLang() {
   fillFormSelects();
   syncAddForm();
   render_now();
+  // 资源条文案也要跟着语言切换（等下一次轮询太慢）
+  fetchHost();
 }
 
 function applyTheme() {
@@ -742,6 +767,7 @@ function applyTheme() {
 
 const API = '';
 const grid = document.getElementById('grid');
+const hostPanel = document.getElementById('host-panel');
 const toast = document.getElementById('toast');
 const drawer = document.getElementById('drawer');
 
@@ -799,6 +825,86 @@ function fmtVersion(v) {
   return /^v/i.test(s) ? s : `v${s}`;
 }
 
+/* ---------- 本机资源条 ---------- */
+function fmtBytes(n) {
+  if (!Number.isFinite(n)) return '–';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let v = n;
+  let i = 0;
+  while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+  return `${v >= 100 ? Math.round(v) : v.toFixed(1)} ${units[i]}`;
+}
+
+/** 一个资源指标：标签 + 百分比条 + 文本；title 放详情 */
+function hostItem(label, usage, text, title) {
+  const pct = Number.isFinite(usage) ? Math.max(0, Math.min(100, Math.round(usage * 100))) : null;
+  const bar = pct === null
+    ? ''
+    : `<span class="host-bar ${usage >= 0.9 ? 'crit' : usage >= 0.7 ? 'warn' : ''}"><i style="width:${pct}%"></i></span>`;
+  return `<span class="host-item" title="${esc(title || '')}"><b>${esc(label)}</b>${bar}<span class="host-num">${esc(text)}</span></span>`;
+}
+
+/** 资源条 HTML（纯函数，便于单测）；数据不完整时返回空串隐藏面板 */
+function hostHtml(h) {
+  if (!h || !h.cpu || !h.memory) return '';
+  const parts = [`<span class="host-item host-title">${esc(t('hostTitle'))}</span>`];
+
+  const cpu = h.cpu;
+  parts.push(hostItem(
+    t('cpu'),
+    cpu.usage,
+    `${Math.round(cpu.usage * 100)}% · ${cpu.cores} ${t('cores')}`,
+    (cpu.perCore || []).map((u, i) => `#${i + 1} ${Math.round(u * 100)}%`).join('  '),
+  ));
+
+  const mem = h.memory;
+  parts.push(hostItem(
+    t('memory'),
+    mem.usage,
+    `${fmtBytes(mem.usedBytes)} / ${fmtBytes(mem.totalBytes)}`,
+    `${Math.round(mem.usage * 100)}%`,
+  ));
+
+  for (const d of (h.disks || []).slice(0, 4)) {
+    parts.push(hostItem(
+      `${t('disk')} ${d.label}`,
+      d.usage,
+      `${Math.round(d.usage * 100)}%`,
+      `${fmtBytes(d.usedBytes)} / ${fmtBytes(d.totalBytes)}`,
+    ));
+  }
+  if ((h.disks || []).length > 4) {
+    parts.push(`<span class="host-item"><span class="host-title">+${h.disks.length - 4} ${t('disk')}</span></span>`);
+  }
+
+  for (const g of (h.gpus || [])) {
+    const name = String(g.name || 'GPU').replace(/^NVIDIA\s+/i, '');
+    if (g.util == null) {
+      parts.push(`<span class="host-item" title="${esc(g.name || '')}"><b>${esc(t('gpu'))}</b><span class="host-num">${esc(name)}</span></span>`);
+      continue;
+    }
+    const bits = [`${Math.round(g.util * 100)}%`];
+    if (g.memTotalBytes) bits.push(`${fmtBytes(g.memUsedBytes)} / ${fmtBytes(g.memTotalBytes)}`);
+    if (g.tempC != null) bits.push(`${g.tempC}°C`);
+    parts.push(hostItem(`${t('gpu')} ${name}`, g.util, bits.join(' · '), g.name));
+  }
+
+  return parts.join('');
+}
+
+async function fetchHost() {
+  if (!hostPanel) return;
+  try {
+    const res = await fetch(`${API}/api/host`);
+    const data = await res.json();
+    const html = hostHtml(data);
+    hostPanel.innerHTML = html;
+    hostPanel.hidden = !html;
+  } catch {
+    hostPanel.hidden = true;
+  }
+}
+
 /** 元信息小药丸：cls 附加配色，html 已是转义后的内容 */
 function pill(cls, html, title) {
   const t = title ? ` title="${esc(title)}"` : '';
@@ -815,9 +921,12 @@ function metaHtml(p) {
     parts.push(pill('warn', esc(t('versionUnknown')), t('versionLabel')));
   }
 
-  // 地址 / 类型说明
-  if (p.url) {
-    parts.push(pill('', `<a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.url.replace(/^https?:\/\//,''))}</a>`));
+  // 地址：列出本机所有可访问 IP（远程访问不用记 IP）；旧数据没有 urls 时退回 url
+  const urls = Array.isArray(p.urls) && p.urls.length ? p.urls : (p.url ? [p.url] : []);
+  if (urls.length) {
+    for (const u of urls) {
+      parts.push(pill('', `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(String(u).replace(/^https?:\/\//,''))}</a>`));
+    }
   } else if (p.kind === 'cli-tool') {
     parts.push(pill('', esc(t('cliTool'))));
   } else if (p.kind === 'desktop-app') {
@@ -1435,6 +1544,10 @@ applyTheme();
 applyLang();
 refresh();
 setInterval(refresh, 3000);
+
+// 本机资源条（独立轮询，失败静默隐藏，不影响项目卡片）
+fetchHost();
+setInterval(fetchHost, 5000);
 
 // 版本号（用于顶栏显示，便于确认跑的是哪份代码）
 fetch(`${API}/api/health`).then(r => r.json()).then(d => {

@@ -10,6 +10,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { MANAGER_PORT, VERSION } from './core/registry.js';
+import { collectHostStats } from './core/host.js';
 import * as projectsApi from './api/projects.js';
 import * as manageApi from './api/manage.js';
 import { scanForProjects } from './api/scan.js';
@@ -84,7 +85,13 @@ async function handleApi(req, res, pathname, url) {
 
   // GET /api/projects —— 全量状态（看板轮询用）
   if (method === 'GET' && pathname === '/api/projects') {
-    sendJson(res, 200, await projectsApi.describeAll());
+    sendJson(res, 200, await projectsApi.describeAll({ host: req.headers.host }));
+    return;
+  }
+
+  // GET /api/host —— 本机资源（CPU/内存/磁盘/GPU，看板资源条轮询用）
+  if (method === 'GET' && pathname === '/api/host') {
+    sendJson(res, 200, await collectHostStats());
     return;
   }
 
