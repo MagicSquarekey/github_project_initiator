@@ -43,7 +43,7 @@ Memerlukan Node.js 20+. Windows didukung penuh; Linux/macOS memakai lapisan plat
 | REA | TypeScript / CLI | — | manual |
 | 2048 | pygame | — | git pull |
 | Grimoire-Echoes | Godot 4 | — | git pull |
-| OpenViking | Python | 1933 | manual |
+| OpenViking | Python | 1933 / 18790 | manual |
 
 ## Keamanan dan isolasi
 

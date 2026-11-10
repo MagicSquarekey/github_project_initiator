@@ -43,7 +43,7 @@ Requiere Node.js 20+. Windows totalmente compatible; Linux/macOS usan la capa de
 | REA | TypeScript / CLI | — | manual |
 | 2048 | pygame | — | git pull |
 | Grimoire-Echoes | Godot 4 | — | git pull |
-| OpenViking | Python | 1933 | manual |
+| OpenViking | Python | 1933 / 18790 | manual |
 
 ## Seguridad y aislamiento
 

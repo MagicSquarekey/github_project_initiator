@@ -43,7 +43,7 @@ Richiede Node.js 20+. Windows pienamente supportato; Linux/macOS usano il livell
 | REA | TypeScript / CLI | — | manuale |
 | 2048 | pygame | — | git pull |
 | Grimoire-Echoes | Godot 4 | — | git pull |
-| OpenViking | Python | 1933 | manuale |
+| OpenViking | Python | 1933 / 18790 | manuale |
 
 ## Sicurezza e isolamento
 

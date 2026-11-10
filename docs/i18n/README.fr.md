@@ -43,7 +43,7 @@ Nécessite Node.js 20+. Windows entièrement pris en charge ; Linux/macOS utilis
 | REA | TypeScript / CLI | — | manuel |
 | 2048 | pygame | — | git pull |
 | Grimoire-Echoes | Godot 4 | — | git pull |
-| OpenViking | Python | 1933 | manuel |
+| OpenViking | Python | 1933 / 18790 | manuel |
 
 ## Sécurité et isolation
 

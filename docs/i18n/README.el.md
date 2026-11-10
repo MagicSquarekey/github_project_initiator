@@ -43,7 +43,7 @@ node src/index.js
 | REA | TypeScript / CLI | — | χειροκίνητα |
 | 2048 | pygame | — | git pull |
 | Grimoire-Echoes | Godot 4 | — | git pull |
-| OpenViking | Python | 1933 | χειροκίνητα |
+| OpenViking | Python | 1933 / 18790 | χειροκίνητα |
 
 ## Ασφάλεια και απομόνωση
 

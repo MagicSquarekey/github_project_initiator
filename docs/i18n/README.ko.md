@@ -43,7 +43,7 @@ Node.js 20+ 필요. Windows 완전 지원, Linux/macOS는 내장 플랫폼 계�
 | REA | TypeScript / CLI | — | 수동 |
 | 2048 | pygame | — | git pull |
 | Grimoire-Echoes | Godot 4 | — | git pull |
-| OpenViking | Python | 1933 | 수동 |
+| OpenViking | Python | 1933 / 18790 | 수동 |
 
 ## 보안 및 격리
 

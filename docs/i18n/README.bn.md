@@ -43,7 +43,7 @@ Node.js 20+ প্রয়োজন। Windows সম্পূর্ণ সম�
 | REA | TypeScript / CLI | — | ম্যানুয়াল |
 | 2048 | pygame | — | git pull |
 | Grimoire-Echoes | Godot 4 | — | git pull |
-| OpenViking | Python | 1933 | ম্যানুয়াল |
+| OpenViking | Python | 1933 / 18790 | ম্যানুয়াল |
 
 ## নিরাপত্তা ও বিচ্ছিন্নতা
 

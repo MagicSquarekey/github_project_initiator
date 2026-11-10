@@ -120,7 +120,19 @@
         "command": "cmd.exe",
         "args": ["/c", "start-libretv.cmd"],
         "cwd": "~/Desktop/LibreTV",
-        "detached": true             // 脱离管理器，管理器退出不影响它
+        "detached": true,            // 脱离管理器，管理器退出不影响它
+        // 可选：主服务就绪后共同拉起的伴随服务（见 3.4）
+        "companions": [
+          {
+            "name": "vikingbot",
+            "command": "~/.openviking/bin/vikingbot.exe",
+            "args": ["gateway", "--port", "18790"],
+            "env": { "VIKINGBOT_WITH_OPENVIKING_SERVER": "1" },
+            "port": 18790,           // 声明端口才会校验就绪、参与停止/重启
+            "timeoutMs": 60000,
+            "required": true         // 没起来则本次启动判失败
+          }
+        ]
       },
       "stop": {
         "strategy": "port",           // port | pidfile | command | none
@@ -202,15 +214,54 @@
 
 看板每张卡片都显示版本号。启动器不改项目，所以版本只能"读"出来，按可靠性排序：
 
-1. `registry.json` 的 `version` 静态覆盖（如 wb2api-panel）
-2. `versionCommand` 动态查询（如 OpenViking 查 pip 元数据）
-3. 根目录清单：`package.json` / `pyproject.toml` / `Cargo.toml` / `project.godot` / `VERSION` / `.release-please-manifest.json`
-4. monorepo 常见子目录：`frontend/package.json`、`backend/pyproject.toml`、`game/project.godot` 等
-5. 根目录 Python 的 `VERSION` / `__version__` 常量（如 qoder2api-hub）
-6. Elasticsearch 的 `lib/elasticsearch-<x.y.z>.jar`
-7. `git describe --tags --always`（无清单的 git 项目，如 2048 / Grimoire-Echoes）
+1. 管理器自己记录的版本（`data/versions.json`，release 更新成功后写入）
+2. `registry.json` 的 `version` 静态覆盖
+3. `versionCommand` 动态查询（如 OpenViking 查 pip 元数据）
+4. 根目录清单：`package.json` / `pyproject.toml` / `Cargo.toml` / `project.godot` / `VERSION` / `.release-please-manifest.json`
+5. monorepo 常见子目录：`frontend/package.json`、`backend/pyproject.toml`、`game/project.godot` 等
+6. 根目录 Python 的 `VERSION` / `__version__` 常量（如 qoder2api-hub）
+7. Elasticsearch 的 `lib/elasticsearch-<x.y.z>.jar`
+8. `git describe --tags --always`（无清单的 git 项目，如 2048 / Grimoire-Echoes）
+
+`versionCommand` 支持可选的 `match` 正则：命令输出是 JSON 之类时，用捕获组提取版本字段，
+而不是把首行整段当版本号。典型例子是 wb2api-panel——二进制不带版本资源、目录里没有清单，
+唯一可信的来源是运行中服务的 `/panel/api/overview`（`"version":"2026.10.23.1859"`）。
+`match` 配了但没命中时不再退回首行，继续找下一个来源；服务停止时该命令失败，
+版本显示"版本未知"。
+
+**教训：二进制会被手动替换的项目不要用静态 `version` 覆盖**。wb2api-panel 曾静态写死
+`1.13.0`，二进制实际已换到日期版构建，看板一直显示旧值，还让一键更新误判"已是最新"。
+配套教训：**更新源必须指向实际在用的发布仓库**——版本显示修正为真实值后，若更新源
+还停在旧 fork（最新 v1.13.0），一键更新会把新构建替换回旧版本。另外换更新源时要核对
+Release 资产清单：misakano 仓库不发 checksums.txt，配置里留着 `checksums` 会让更新直接失败。
 
 结果缓存 60 秒：看板每 3 秒轮询，不能让 Python/git 子进程每 3 秒起一次。无 tag 时 `git describe` 只给短 SHA，看板显示为 `@abc1234`；完全无来源显示"版本未知"。
+
+### 3.5 伴随服务：共同启停
+
+有些项目天然是两个进程：OpenViking 的主服务（1933）和 vikingbot（18790）。
+只拉起主服务会让记忆检索可用、bot 网关不可用，用户很难从看板上看出缺了什么。
+`start.companions` 把这种关系声明出来，让管理器按一个整体处理：
+
+| 环节 | 行为 |
+|---|---|
+| 启动 | 主服务就绪后依次拉起 companions；声明了 `port` 就轮询到端口监听为止 |
+| 失败 | `required: true`（默认）的伴随服务没起来 → 本次启动返回失败；主服务保持运行，错误信息说明缺了谁 |
+| 补齐 | 主服务已在运行时不重复拉起，只启动缺失的 companions（看板的"补齐服务"按钮） |
+| 停止 | 停止端口集合 = `stop.ports` ∪ 主服务端口 ∪ `services` 端口 ∪ companion 端口，再按 `imageNames` 回收包装器 |
+| 重启 | 先等上述全部端口释放，再一起拉起 |
+| 状态 | 主服务端口决定 `running`；required companion 缺失时 `degraded=true`，看板显示"部分运行"+ 琥珀灯 + 补齐按钮 |
+
+**与 `afterReady` 的区别**：`afterReady` 是旧机制，只"尽力执行一条命令"，不校验端口、
+不参与停止集合；保留它只为兼容旧配置。需要共同启停的服务一律用 `companions`。
+
+**为什么把 `env` 放进配置**：vikingbot 需要 `VIKINGBOT_WITH_OPENVIKING_SERVER=1` 和
+`VIKINGBOT_MANAGED_OV_SERVER_URL` 才能连上外部主服务。把这些写在 registry 里，
+就不用再往 `~/.openviking` 放一个 `start-bot.cmd`——启动器不修改被管项目的边界得以保持。
+
+**取舍**：只支持一层伴随关系（主服务 → companions），不做通用启动依赖图。
+AutoTestHub 那种"一个脚本同时拉起两个服务"的场景继续由项目脚本负责，
+管理器只按多端口探测/停止。
 
 ---
 
@@ -231,6 +282,11 @@
    process.kill(pid, 0) → 不抛错 = 活着
    仅用于管理器自己 spawn 且拿到了 PID 的情况。
 ```
+
+**主服务端口决定 `running`。** 声明了 `port` / `ports` 的项目，只有主服务端口监听才算运行中；
+只有伴随服务端口（如 vikingbot 的 18790）活着会显示"未运行"，避免 bot 单独活着时
+卡片误报运行中。伴随端口仍会出现在 `openPorts` 里，看板据此点亮子服务 LED。
+没有主服务端口的项目（桌面程序、CLI）退化为"任一端口/进程名命中"。
 
 **不做 HTTP 探活**：探活要等首字节，慢且可能被路由 404 干扰。TCP 连上就说明端口被监听，对"启停"这个目的足够了。就绪判定交给日志匹配（`startupMatch`）或超时。
 
@@ -265,7 +321,7 @@ async function pidsOnPort(port) {
 |---|---|---|
 | `port` | 反查 PID → `taskkill /F /PID` | LibreTV, gpp, qoder, wb2api |
 | `port` (多端口) | 对每个端口反查，合并 PID 集合后一起杀 | AutoTestHub（8686 + 5173） |
-| `port` + `imageNames` | 端口反查 + 进程名，回收包装器/伴随进程 | OpenViking（1933/18790 + openviking-server.exe/vikingbot.exe） |
+| `port` + `imageNames` | 端口反查（含 services / companions 声明的端口）+ 进程名，回收包装器/伴随进程 | OpenViking（1933/18790 + openviking-server.exe/vikingbot.exe） |
 | `procname` | `taskkill /F /IM <name>.exe` | 2048、Grimoire-Echoes 等桌面程序 |
 | `command` | 执行项目自带停止脚本 | 有 `stop.bat` 的项目 |
 | `none` | 仅置状态位 | REA 这类 CLI 工具 |
@@ -576,7 +632,7 @@ github_project_initiator/
 | # | 问题 | 取舍 | 后续 |
 |---|---|---|---|
 | 1 | `taskkill /F` 强杀可能损坏 qoder/wb2api 的状态文件 | 先软杀等 3 秒再强杀 | 若仍出问题，为这两个项目加 `stop.strategy: command` 走项目自己的停止逻辑 |
-| 2 | `cmd.exe /c` 启动后管理器拿不到真实 PID | 停止靠端口反查，不靠 PID | 端口被别的程序占用时会误杀——启动前先校验端口空闲，占用则拒绝启动并报出占用者 PID |
+| 2 | `cmd.exe /c` 启动后管理器拿不到真实 PID | 停止靠端口反查，不靠 PID | 端口被别的程序占用时会误杀。启动时不再拒绝：主服务端口已监听即视为"已在运行"，只补齐缺失的 companions（否则 bot 掉线时无法单独补齐）；停止会连带停掉占用者——与"端口即项目"的探测假设一致，发现误占用需人工确认 |
 | 3 | 6 个服务已在运行，是"外部启动"的 | Phase 1 只读探测，Phase 2 起停时对"非我启动的"也能停（端口反查天然支持） | 停止外部启动的服务需用户确认，提示"该服务非本管理器启动" |
 | 4 | 非 git 项目无法更新 | 标为手动更新，不自动 init | 用户自行决定是否纳入 git |
 | 5 | `netstat` 解析依赖输出格式 | 加边界测试锁定 `:8090` vs `80901` | Windows 版本升级导致格式变化时测试会先失败 |
@@ -594,7 +650,7 @@ github_project_initiator/
 ## 11. 后续可扩展（本次不做）
 
 - 项目分组/标签（"游戏"、"工具"、"API 代理"）
-- 启动依赖顺序（AutoTestHub 的 backend 要先于 frontend）
+- 更一般的启动依赖图（当前 `start.companions` 只覆盖"主服务 → 一层伴随服务"）
 - 资源占用监控（CPU/内存，需定期采样，成本高于收益）
 - Web 端推送替代轮询（SSE，8 个项目的状态变化频率不值得）
 - 更新前自动打 tag / 备份当前 commit SHA，便于回滚

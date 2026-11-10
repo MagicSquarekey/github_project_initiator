@@ -150,7 +150,7 @@
         "strategy": "procname",
         "imageName": "wb2api.exe"
       },
-      "url": "http://127.0.0.1:7863",
+      "url": "http://127.0.0.1:7863/panel/",
       "port": 7863,
       "startupTimeoutMs": 30000,
       "startupMatch": "listening|Listening|:7863",
@@ -243,28 +243,51 @@
       "enabled": true,
       "kind": "python-service",
       "start": {
-        "command": "powershell.exe",
-        "args": [
-          "-NoProfile",
-          "-ExecutionPolicy",
-          "Bypass",
-          "-File",
-          "~/.openviking/start-server-hidden.ps1"
-        ],
-        "detached": true
+        "command": "${LOCALAPPDATA}/Programs/Python/Python311/Scripts/openviking-server.exe",
+        "args": [],
+        "detached": true,
+        "companions": [
+          {
+            "name": "vikingbot",
+            "command": "${LOCALAPPDATA}/Programs/Python/Python311/Scripts/vikingbot.exe",
+            "args": [
+              "gateway",
+              "--host",
+              "127.0.0.1",
+              "--port",
+              "18790",
+              "--config",
+              "~/.openviking/ov.conf"
+            ],
+            "env": {
+              "VIKINGBOT_WITH_OPENVIKING_SERVER": "1",
+              "VIKINGBOT_MANAGED_OV_SERVER_URL": "http://127.0.0.1:1933"
+            },
+            "port": 18790,
+            "timeoutMs": 60000,
+            "required": true
+          }
+        ]
       },
       "stop": {
         "strategy": "port",
-        "port": 1933
+        "ports": [
+          1933,
+          18790
+        ],
+        "imageNames": [
+          "openviking-server.exe",
+          "vikingbot.exe"
+        ]
       },
       "url": "http://127.0.0.1:1933",
       "port": 1933,
       "startupTimeoutMs": 120000,
-      "startupMatch": "Server is ready|responding on port 1933|already running",
+      "startupMatch": "session manager|OpenViking HTTP Server is running|Server is ready|responding on port 1933|already running",
       "update": {
         "strategy": "none"
       },
-      "notes": "pip 安装的常驻服务，端口 1933，冷启动约 40 秒。启动复用官方 start-server-hidden.ps1；停止走端口反查（无官方停止命令，软杀→3 秒后强杀）。非 git 仓库，升级请手动 pip install -U。"
+      "notes": "pip 安装的常驻服务，端口 1933，冷启动约 40 秒。vikingbot（18790）通过 start.companions 与主服务共同启停：主服务就绪后拉起并校验端口，停止/重启一起回收。非 git 仓库，升级请手动 pip install -U openviking。"
     }
   ]
 }
