@@ -62,7 +62,7 @@ function hostnameOf(hostHeader) {
   }
 }
 
-/** 是否从非回环地址访问（决定要不要展开远程 IP） */
+/** 是否从非回环地址访问（决定地址列表里要不要保留 127.0.0.1） */
 function isRemoteAccess(hostHeader) {
   const host = hostnameOf(hostHeader);
   return host !== null && !isLoopbackHost(host);
@@ -86,8 +86,8 @@ export function withoutRootSlash(url) {
 /**
  * 把一个 URL 的 host 替换成本机每个 IPv4，保留端口、路径与查询串。
  *
- * 只在「远程访问 + 原 host 是本机地址」时展开；本地访问保持原样，
- * 避免看板堆一排用不到的地址。
+ * 本地访问也展开（方便把地址复制给手机/其他设备）；唯一区别是回环地址：
+ * 本地访问保留它（点击最直接），远程访问丢掉它（它指向访问者自己的机器）。
  *
  * @param {string} url
  * @param {boolean} remote
@@ -96,7 +96,6 @@ export function withoutRootSlash(url) {
 function expandUrl(url, remote) {
   if (!url) return [];
   url = withoutRootSlash(url);
-  if (!remote) return [url];
   let base;
   try {
     base = new URL(url);
@@ -106,19 +105,24 @@ function expandUrl(url, remote) {
 
   const host = base.hostname.replace(/^\[|\]$/g, '');
   const locals = localIPv4s().map((i) => i.address);
+  // 不是本机地址（公网域名、别的机器）：原样返回，别硬套网卡
   if (!isLoopbackHost(host) && !locals.includes(host)) return [url];
 
   const suffix = `${base.pathname === '/' ? '' : base.pathname}${base.search}${base.hash}`;
-  // 远程访问时回环地址指向的是客户端本机，没意义，直接省掉
-  const urls = isLoopbackHost(host) ? [] : [url];
-  const seen = new Set(urls);
+  const urls = [];
+  const seen = new Set();
+  const add = (u) => {
+    if (!u || seen.has(u)) return;
+    seen.add(u);
+    urls.push(u);
+  };
+
+  // 配置的地址放最前（本地就是 127.0.0.1，点开最快）；远程访问时回环地址没意义
+  if (!remote || !isLoopbackHost(host)) add(url);
+
   for (const ip of locals) {
     if (ip === host) continue;
-    const href = `${base.protocol}//${ip}${base.port ? `:${base.port}` : ''}${suffix}`;
-    if (!seen.has(href)) {
-      seen.add(href);
-      urls.push(href);
-    }
+    add(`${base.protocol}//${ip}${base.port ? `:${base.port}` : ''}${suffix}`);
   }
   return urls.length > 0 ? urls : [url];
 }
@@ -126,14 +130,13 @@ function expandUrl(url, remote) {
 /**
  * 管理器自身的可访问地址。
  *
- * - 远程访问：先给「当前正在使用的地址」，再列全部本机 IPv4（Tailscale 优先）；
- * - 本地访问：只给当前地址，不堆远程链接。
+ * 先给「当前正在使用的地址」，再列全部本机 IPv4（Tailscale 优先）。
+ * 本地访问也列全部地址：把局域网/Tailscale 地址复制到手机或别的设备就能直接打开。
  *
  * @param {string} [hostHeader] 请求的 Host 头
- * @param {boolean} [remote]
  * @returns {string[]}
  */
-function selfUrls(hostHeader, remote = false) {
+function selfUrls(hostHeader) {
   const fmt = (h) => `http://${h.includes(':') ? `[${h}]` : h}:${MANAGER_PORT}`;
   const urls = [];
   const add = (u) => {
@@ -143,9 +146,9 @@ function selfUrls(hostHeader, remote = false) {
   const host = hostnameOf(hostHeader);
   if (host) add(`http://${hostHeader}`); // 浏览器当前使用的地址（含端口/域名）
 
-  if (remote) {
-    for (const i of localIPv4s()) add(fmt(i.address));
-  } else if (urls.length === 0) {
+  for (const i of localIPv4s()) add(fmt(i.address));
+
+  if (urls.length === 0) {
     const bind = process.env.GPI_HOST || '127.0.0.1';
     add(fmt(bind === '0.0.0.0' || bind === '::' ? '127.0.0.1' : bind));
   }
@@ -267,7 +270,7 @@ export async function describeProject(project, options = {}) {
     ports,
     url: project.url ? withoutRootSlash(project.url) : null,
     // 同一地址在本机每张网卡上的可点链接（远程访问用，不用记 IP）
-    urls: self ? selfUrls(options.host, options.remote) : expandUrl(project.url, options.remote),
+    urls: self ? selfUrls(options.host) : expandUrl(project.url, options.remote),
     // 多服务/伴随服务清单，看板用来逐个显示就绪状态
     services,
     // 自身条目的运行时长来自进程本身；其他项目来自管理器的启动记录
