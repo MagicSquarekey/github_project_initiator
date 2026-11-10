@@ -12,7 +12,11 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
 const LOG_DIR = path.join(ROOT, 'data', 'logs');
-const MANAGER_LOG = path.join(LOG_DIR, 'manager.log');
+/**
+ * 日志文件名可用 GPI_LOG_FILE 覆盖：自检用的 canary 进程会写 canary.log，
+ * 避免和主进程同时追加 manager.log（两个写流会抢轮转）。
+ */
+const MANAGER_LOG = path.join(LOG_DIR, process.env.GPI_LOG_FILE || 'manager.log');
 
 /** 单文件超过 8MB 轮转到 .1，避免无限增长 */
 const MAX_BYTES = 8 * 1024 * 1024;

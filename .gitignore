@@ -38,3 +38,6 @@ secrets.json
 Thumbs.db
 desktop.ini
 nohup.out
+
+# 编辑器/智能体工作目录
+.zcode/

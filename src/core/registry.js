@@ -179,7 +179,7 @@ export function buildSelfProject() {
     port: MANAGER_PORT,
     startupTimeoutMs: 0,
     update: { strategy: 'none' },
-    notes: '管理器自身：状态由当前进程提供，不能在看板里启停或更新。升级请手动 git pull 后重启进程。',
+    notes: '管理器自身：状态由当前进程提供，不能在看板里启停；可在卡片上重启或更新自己（重启期间看板会断开几秒）。',
   };
 }
 

@@ -69,6 +69,21 @@ function isRemoteAccess(hostHeader) {
 }
 
 /**
+ * 去掉根路径末尾的 "/"：http://h:80/ → http://h:80
+ *
+ * 项目地址常被写成 `http://100.65.61.59/`。同一张卡片同时显示配置地址和
+ * 各网卡地址，末尾斜杠会让它们长得不一致（"100.65.61.59/" vs "10.8.0.18"）。
+ * 真正的路径（如 /panel/）保持原样。
+ *
+ * @param {string} url
+ * @returns {string}
+ */
+export function withoutRootSlash(url) {
+  if (typeof url !== 'string') return url;
+  return url.replace(/^(https?:\/\/[^/?#]+)\/(?=$|[?#])/i, '$1');
+}
+
+/**
  * 把一个 URL 的 host 替换成本机每个 IPv4，保留端口、路径与查询串。
  *
  * 只在「远程访问 + 原 host 是本机地址」时展开；本地访问保持原样，
@@ -80,6 +95,7 @@ function isRemoteAccess(hostHeader) {
  */
 function expandUrl(url, remote) {
   if (!url) return [];
+  url = withoutRootSlash(url);
   if (!remote) return [url];
   let base;
   try {
@@ -249,7 +265,7 @@ export async function describeProject(project, options = {}) {
     degraded,
 
     ports,
-    url: project.url ?? null,
+    url: project.url ? withoutRootSlash(project.url) : null,
     // 同一地址在本机每张网卡上的可点链接（远程访问用，不用记 IP）
     urls: self ? selfUrls(options.host, options.remote) : expandUrl(project.url, options.remote),
     // 多服务/伴随服务清单，看板用来逐个显示就绪状态
@@ -292,8 +308,8 @@ export function guardSelfAction(project, action) {
   const messages = {
     start: '管理器不能启动自身：它正在运行。若已停止，请从终端执行 node src/index.js。',
     stop: '管理器不能停止自身：停止后看板会立即消失。请用 Ctrl+C 或关闭终端。',
-    restart: '管理器不能重启自身：重启期间看板不可用。请在终端里手动重启。',
-    update: '管理器不通过看板更新自身：请手动 git pull 后重启进程，让新代码生效。',
+    restart: '项目接口不重启管理器：请用自身卡片上的「重启」按钮（重启期间看板会断开几秒）。',
+    update: '项目接口不更新管理器：请用自身卡片上的「更新」按钮（git 更新 + 自检 + 重启）。',
   };
   return { ok: false, message: messages[action] ?? '管理器自身不可执行该操作。' };
 }

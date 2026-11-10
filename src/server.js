@@ -13,6 +13,7 @@ import { MANAGER_PORT, VERSION } from './core/registry.js';
 import { collectHostStats } from './core/host.js';
 import * as projectsApi from './api/projects.js';
 import * as manageApi from './api/manage.js';
+import * as selfApi from './api/self.js';
 import { scanForProjects } from './api/scan.js';
 import { inspectDirectory } from './api/inspect.js';
 import { browseDirectories } from './api/browse.js';
@@ -142,6 +143,19 @@ async function handleApi(req, res, pathname, url) {
   // POST /api/update-all —— 批量更新
   if (method === 'POST' && pathname === '/api/update-all') {
     sendJson(res, 200, await projectsApi.updateAll());
+    return;
+  }
+
+  // POST /api/self/restart —— 重启管理器自己
+  if (method === 'POST' && pathname === '/api/self/restart') {
+    const result = await selfApi.restartSelf();
+    sendJson(res, result.ok ? 202 : 200, result);
+    return;
+  }
+
+  // POST /api/self/update —— 更新管理器自己（git 更新 → 自检 → 重启）
+  if (method === 'POST' && pathname === '/api/self/update') {
+    sendJson(res, 200, await selfApi.updateSelf());
     return;
   }
 

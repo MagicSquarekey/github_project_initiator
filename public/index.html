@@ -546,7 +546,12 @@ const I18N = {
     stop: '停止', restart: '重启', update: '更新', manualUpdate: '手动更新', logs: '日志',
     cliTool: 'CLI 工具 · 无启停', desktopApp: '桌面程序', nonGit: '非 git',
     selfLabel: '自身',
-    selfHint: '管理器自身：状态由当前进程提供，不能在看板里启停或更新。升级请手动 git pull 后重启。',
+    selfHint: '管理器自身：可在这里重启或更新自己；重启期间看板会断开几秒。',
+    confirmSelfRestart: '重启管理器中，看板会断开几秒，确定？',
+    confirmSelfUpdate: '从 git 拉取最新代码并自动重启管理器；期间看板会断开几秒，确定？',
+    selfRestarting: '正在重启管理器…',
+    selfReady: '管理器已恢复',
+    selfRestartTimeout: '重启超时：请检查管理器进程和 data/logs/self-restart.log',
     versionLabel: '版本', versionUnknown: '版本未知',
     cpu: 'CPU', memory: '内存', disk: '磁盘', gpu: 'GPU', cores: '核', hostTitle: '本机资源',
     dirty: '有改动', ahead: '领先', behind: '落后',
@@ -649,7 +654,12 @@ const I18N = {
     stop: 'Stop', restart: 'Restart', update: 'Update', manualUpdate: 'Manual', logs: 'Logs',
     cliTool: 'CLI tool · no lifecycle', desktopApp: 'Desktop app', nonGit: 'non-git',
     selfLabel: 'self',
-    selfHint: 'The manager itself: status comes from its own process; it cannot be started, stopped, or updated from this dashboard. Upgrade with git pull and a restart.',
+    selfHint: 'The manager itself: restart or update it here; the dashboard disconnects for a few seconds while it restarts.',
+    confirmSelfRestart: 'Restart the manager? The dashboard will disconnect for a few seconds.',
+    confirmSelfUpdate: 'Pull the latest code from git and restart the manager? The dashboard will disconnect for a few seconds.',
+    selfRestarting: 'Restarting the manager…',
+    selfReady: 'Manager is back',
+    selfRestartTimeout: 'Restart timed out: check the manager process and data/logs/self-restart.log',
     versionLabel: 'version', versionUnknown: 'version unknown',
     cpu: 'CPU', memory: 'Memory', disk: 'Disk', gpu: 'GPU', cores: 'cores', hostTitle: 'Host',
     dirty: 'dirty', ahead: 'ahead', behind: 'behind',
@@ -993,8 +1003,14 @@ function metaHtml(p) {
 function actionsHtml(p) {
   const dis = busy.has(p.id) ? 'disabled' : '';
   const b = [];
-  // 管理器自身与 observe-only 条目：启停/重启/更新没有意义（或没有权限），只保留日志。
-  if (!p.self && p.kind !== 'observe-only') {
+  if (p.self) {
+    // 管理器自身：不能启停，但可以在看板里重启/更新自己
+    b.push(`<button data-act="self-restart" data-id="${esc(p.id)}" ${dis}>${esc(t('restart'))}</button>`);
+    if (p.git?.isRepo) {
+      const label = p.git.behind > 0 ? `${t('update')} ↓${p.git.behind}` : t('update');
+      b.push(`<button data-act="self-update" data-id="${esc(p.id)}" ${dis}>${esc(label)}</button>`);
+    }
+  } else if (p.kind !== 'observe-only') {
     if (p.running) {
       // 部分运行（如 OpenViking 主服务在、vikingbot 掉了）：允许补齐缺失的伴随服务
       if (p.degraded && p.startable) {
@@ -1097,6 +1113,85 @@ async function act(action, id) {
     errors.set(id, msg); showToast(msg, false);
   } finally {
     busy.delete(id);
+    await refresh();
+  }
+}
+
+/* ---------- 管理器自身：重启 / 更新 ---------- */
+const sleepMs = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function currentUptime() {
+  try {
+    const res = await fetch(`${API}/api/health`, { cache: 'no-store' });
+    const h = await res.json();
+    return Number.isFinite(h.uptimeSec) ? h.uptimeSec : null;
+  } catch {
+    return null;
+  }
+}
+
+/** 等新进程起来：uptime 归零（比重启前小）且能应答 /api/health */
+async function waitForManagerBack(beforeUptime = null) {
+  const deadline = Date.now() + 60000;
+  while (Date.now() < deadline) {
+    await sleepMs(700);
+    try {
+      const res = await fetch(`${API}/api/health`, { cache: 'no-store' });
+      if (!res.ok) continue;
+      const h = await res.json();
+      if (h.ok && h.uptimeSec <= 20 && (beforeUptime == null || h.uptimeSec < beforeUptime)) return h;
+    } catch {
+      // 旧进程已退出、新进程还没起来：继续等
+    }
+  }
+  throw new Error(t('selfRestartTimeout'));
+}
+
+/**
+ * 管理器自管理动作：先确认，再请求，最后等进程回来。
+ * 重启时请求可能被切断（旧进程已退出），这种情况同样进入等待。
+ */
+async function selfAct(action) {
+  const msg = action === 'update' ? t('confirmSelfUpdate') : t('confirmSelfRestart');
+  if (!confirm(msg)) return;
+
+  const id = 'manager';
+  const before = await currentUptime();
+  busy.add(id); errors.delete(id); render_now();
+
+  let restarted = false;
+  try {
+    const res = await fetch(`${API}/api/self/${action}`, { method: 'POST' });
+    const data = await res.json();
+    if (data.ok === false) {
+      errors.set(id, data.message || t('opFail'));
+      showToast(data.message || t('opFail'), false, 15000);
+      return;
+    }
+    showToast(data.message || t('selfRestarting'), true, 10000);
+    // 已是最新 / 只更新不重启：不用等
+    if (data.restarted === false && data.updated === false) return;
+    restarted = true;
+  } catch (err) {
+    // 重启造成的连接中断是正常现象，按"已重启"处理
+    showToast(t('selfRestarting'), true, 10000);
+    restarted = true;
+  } finally {
+    if (!restarted) {
+      busy.delete(id);
+      render_now();
+    }
+  }
+
+  try {
+    await waitForManagerBack(before);
+    showToast(t('selfReady'), true);
+  } catch (err) {
+    errors.set(id, err.message);
+    showToast(err.message, false, 15000);
+  } finally {
+    busy.delete(id);
+    render_now();
     await refresh();
   }
 }
@@ -1475,6 +1570,8 @@ grid.addEventListener('click', (e) => {
   const { act: action, id } = btn.dataset;
   if (action === 'logs') openLogs(id);
   else if (action === 'remove') removeProject(id);
+  else if (action === 'self-restart') selfAct('restart');
+  else if (action === 'self-update') selfAct('update');
   else act(action, id);
 });
 document.getElementById('btn-update-all').addEventListener('click', updateAll);

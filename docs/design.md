@@ -199,16 +199,16 @@
 | `kind` | `observe-only` | 只观察，不启动、不停止 |
 | `path` | 代码根目录 | 天然可移植，不需要写进用户配置 |
 | `port` | 8780 | 唯一允许占用管理器端口的条目 |
-| `stop` / `update` | `none` | 看板不能停止或更新自己 |
+| `stop` / `update` | `none` | 项目级接口不能停/更新自己；自管理走 `/api/self/*` 专用接口 |
 
 为什么这样设计：
 
 - **不写进 registry.json**：那份文件含本机绝对路径、不入库；自身条目写进去既破坏可移植性，又可能被误删。
 - **不落盘**：`saveRegistry()` 会剥离 `self: true` 的条目，避免 `loadRegistry()` 的结果被原样回写时把合成条目固化。
 - **状态不做探测**：请求能到达 `/api/projects`，就说明进程活着，直接返回 `runningVia: 'self'` 和当前 PID；运行时长取自 `process.uptime()`。
-- **动作明确拒绝**：停止自己等于看板立即消失，重启自己则先杀掉唯一能重新拉起自己的进程。API 返回可读的拒绝原因，看板也不渲染启停按钮；批量停止同样排除自身。
+- **启停仍然拒绝，自管理走专用通道**：停止自己等于看板立即消失，所以项目级 `start/stop/restart/update` 对自身一律拒绝；看板自身卡片只提供「重启 / 更新」两个按钮，走 `/api/self/restart|update`。systemd 下以非 0 退出，交给 unit 的 `Restart=on-failure` 拉起；Windows 下先派生一个脱离的重启助手，等旧进程退出、端口释放后再拉起新进程并做健康检查。更新走 git（stash → `pull --ff-only` → stash pop），拉完先在随机端口起一个 canary 自检，新代码起不来就保留旧进程继续服务。批量停止/更新同样排除自身。
 - **日志天然对齐**：`id=manager` 对应 `data/logs/manager.log`，日志按钮不需要特殊分支。
-- **后台仍会 fetch**：自身 `update.strategy` 是 `none`（不能一键更新），但仍参与每 5 分钟的 `git fetch`，所以卡片上的落后提交数是新鲜的；升级方式仍是手动 `git pull` 后重启。
+- **后台仍会 fetch**：自身 `update.strategy` 是 `none`（项目级接口不更新自己），但仍参与每 5 分钟的 `git fetch`，所以卡片上的落后提交数是新鲜的；升级用卡片上的「更新」按钮（git pull + 自检 + 重启），自检失败时旧进程继续服务。
 
 ### 3.4 版本号从哪来
 

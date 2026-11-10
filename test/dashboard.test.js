@@ -193,21 +193,38 @@ test('observe-only 项目运行中也只保留日志/移除，不显示无效的
   assert.match(h, /data-act="remove" data-id="pg"/);
 });
 
-test('自身项目只保留日志按钮，不渲染启停/重启/更新', () => {
+test('自身项目提供重启/更新按钮，不渲染启停/移除', () => {
   const { render, grid } = loadDashboard();
   render([proj({
-    id: 'manager', name: 'github_project_initiator', self: true,
+    id: 'manager', name: '项目管理器', self: true,
     running: true, kind: 'observe-only', updatable: false,
+    git: { isRepo: true, behind: 2 },
   })]);
   const h = grid.children.join('');
   assert.doesNotMatch(h, /data-act="stop"/);
-  assert.doesNotMatch(h, /data-act="restart"/);
   assert.doesNotMatch(h, /data-act="start"/);
-  assert.doesNotMatch(h, /data-act="update"/);
+  assert.doesNotMatch(h, /data-act="restart"/);   // 项目级重启 API 仍拒绝自身
+  assert.doesNotMatch(h, /data-act="update"/);    // 项目级更新 API 仍拒绝自身
+  assert.match(h, /data-act="self-restart" data-id="manager"/);
+  assert.match(h, /data-act="self-update" data-id="manager"/);
+  assert.match(h, /↓2/);
   assert.match(h, /data-act="logs" data-id="manager"/);
+  assert.doesNotMatch(h, /data-act="remove"/);
   // 卡片右上角标出"自身"，避免和普通 observe-only 项目混淆
   assert.match(h, /class="kind self"/);
   assert.match(h, /自身/);
+});
+
+test('自身不是 git 仓库时只给重启，不给更新', () => {
+  const { render, grid } = loadDashboard();
+  render([proj({
+    id: 'manager', name: '项目管理器', self: true,
+    running: true, kind: 'observe-only', updatable: false,
+    git: { isRepo: false, behind: null },
+  })]);
+  const h = grid.children.join('');
+  assert.match(h, /data-act="self-restart" data-id="manager"/);
+  assert.doesNotMatch(h, /data-act="self-update"/);
 });
 
 test('不可更新项目显示手动更新', () => {

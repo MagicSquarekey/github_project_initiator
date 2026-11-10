@@ -25,6 +25,17 @@ import os from 'node:os';
  */
 const HOST = process.env.GPI_HOST || '127.0.0.1';
 
+/**
+ * 监听端口可用 GPI_PORT 覆盖。默认 8780。
+ *
+ * 只给「自检 canary」用：更新前先在随机端口起一个临时实例，
+ * 确认新代码能起来再重启正式进程。正常部署不要设置这个变量。
+ */
+const PORT = Number(process.env.GPI_PORT) || MANAGER_PORT;
+
+/** 自检 canary 不跑后台 git fetch：只活几秒，别和主进程抢 git lock */
+const SKIP_FETCH = process.env.GPI_SKIP_FETCH === '1';
+
 /** 是不是回环地址（含公网绑定时用于安全提示） */
 function isLoopback(host) {
   return ['127.0.0.1', 'localhost', '::1', '[::1]'].includes(host);
@@ -74,23 +85,25 @@ async function main() {
   }
 
   // 后台刷新 remote（不阻塞服务就绪）
-  void refreshGitRemotes().then(() => {
-    setInterval(() => void refreshGitRemotes(), FETCH_INTERVAL_MS);
-  });
+  if (!SKIP_FETCH) {
+    void refreshGitRemotes().then(() => {
+      setInterval(() => void refreshGitRemotes(), FETCH_INTERVAL_MS);
+    });
+  }
 
   const server = createServer();
 
   server.on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
-      logger.error(`端口 ${MANAGER_PORT} 已被占用，管理器无法启动`, { port: MANAGER_PORT });
+      logger.error(`端口 ${PORT} 已被占用，管理器无法启动`, { port: PORT });
       process.exit(1);
     }
     logger.error('HTTP 服务错误', { error: err.message });
     process.exit(1);
   });
 
-  server.listen(MANAGER_PORT, HOST, () => {
-    logger.info(`管理器已启动：http://${HOST}:${MANAGER_PORT}`, { port: MANAGER_PORT, host: HOST });
+  server.listen(PORT, HOST, () => {
+    logger.info(`管理器已启动：http://${HOST}:${PORT}`, { port: PORT, host: HOST });
     console.log('');
     console.log(`  项目管理器 管理面板`);
     if (HOST === '0.0.0.0') {
@@ -98,12 +111,12 @@ async function main() {
       for (const list of Object.values(os.networkInterfaces())) {
         for (const iface of list ?? []) {
           if (iface.family === 'IPv4' && !iface.internal) {
-            console.log(`  http://${iface.address}:${MANAGER_PORT}`);
+            console.log(`  http://${iface.address}:${PORT}`);
           }
         }
       }
     } else {
-      console.log(`  http://${HOST}:${MANAGER_PORT}`);
+      console.log(`  http://${HOST}:${PORT}`);
     }
     console.log('');
     console.log('  按 Ctrl+C 停止管理器（不影响已启动的项目）');
