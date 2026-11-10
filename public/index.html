@@ -172,6 +172,12 @@ main { padding: 20px 22px 56px; max-width: 1440px; margin: 0 auto; }
 .meta .pill > a, .meta .pill > span { overflow: hidden; text-overflow: ellipsis; }
 .meta .pill a { color: var(--blue); text-decoration: none; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
 .meta .pill a:hover { text-decoration: underline; }
+/* 服务药丸：有没有可点链接都长一样。
+   服务器上 backend 只监听 127.0.0.1，没法给外网链接；如果按"有链接=蓝色等宽"
+   渲染，同一排里 frontend 蓝、backend 灰，看着像两种东西。 */
+.meta .pill.svc > a,
+.meta .pill.svc > span { color: inherit; font-family: inherit; }
+.meta .pill.svc > a:hover { text-decoration: underline; }
 .meta .pill.ver {
   color: var(--accent); font-weight: 600;
   border-color: color-mix(in srgb, var(--accent) 32%, var(--border));
@@ -978,7 +984,7 @@ function metaHtml(p) {
       const link = s.url
         ? `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.label)}:${s.port}</a>`
         : `<span>${esc(s.label)}:${s.port}</span>`;
-      parts.push(pill('', dot + link));
+      parts.push(pill('svc', dot + link));
     }
   }
 
