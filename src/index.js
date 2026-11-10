@@ -92,7 +92,7 @@ async function main() {
   server.listen(MANAGER_PORT, HOST, () => {
     logger.info(`管理器已启动：http://${HOST}:${MANAGER_PORT}`, { port: MANAGER_PORT, host: HOST });
     console.log('');
-    console.log(`  github_project_initiator 管理面板`);
+    console.log(`  项目管理器 管理面板`);
     if (HOST === '0.0.0.0') {
       // 绑所有网卡时列出可访问地址（Tailscale / 内网），方便直接点开
       for (const list of Object.values(os.networkInterfaces())) {

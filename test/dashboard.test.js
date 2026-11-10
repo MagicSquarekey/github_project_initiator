@@ -339,13 +339,13 @@ test('运行时长格式化', () => {
   assert.match(grid.children.join(''), /1h 2m/);
 });
 
-test('品牌名随语言切换（github项目启动器 / github_project_initiator）', () => {
+test('品牌名随语言切换（项目管理器 / Project Manager）', () => {
   const html = fs.readFileSync(HTML_PATH, 'utf8');
   const code = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 
   const grid = mkEl('div');
   const brand = mkEl('div');
-  brand.textContent = 'github项目启动器';
+  brand.textContent = '项目管理器';
   const btnLang = mkEl('div');
   const els = { grid, 'brand-name': brand, 'btn-lang': btnLang };
   const store = new Map();
@@ -380,17 +380,17 @@ test('品牌名随语言切换（github项目启动器 / github_project_initiato
   fn(...Object.keys(sandbox).map((k) => sandbox[k]));
 
   // 初始（系统语言 zh-CN）→ 中文
-  assert.equal(brand.textContent, 'github项目启动器');
-  assert.match(doc.title, /github项目启动器/);
+  assert.equal(brand.textContent, '项目管理器');
+  assert.equal(doc.title, '项目管理器');
 
   // 点击切英文
   btnLang.click();
-  assert.equal(brand.textContent, 'github_project_initiator', '英文品牌名');
-  assert.match(doc.title, /github_project_initiator · Project Manager/);
+  assert.equal(brand.textContent, 'Project Manager', '英文品牌名');
+  assert.equal(doc.title, 'Project Manager');
 
   // 再点回中文
   btnLang.click();
-  assert.equal(brand.textContent, 'github项目启动器');
+  assert.equal(brand.textContent, '项目管理器');
 });
 
 test('品牌图标存在', () => {

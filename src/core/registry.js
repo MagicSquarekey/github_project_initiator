@@ -47,7 +47,7 @@ export const MANAGER_PORT = 8780;
 export const SELF_PROJECT_ID = 'manager';
 
 /** 管理器自身在看板里的显示名 */
-export const SELF_PROJECT_NAME = 'github_project_initiator';
+export const SELF_PROJECT_NAME = '项目管理器';
 
 /**
  * 用户可见版本号（带 V 前缀）。

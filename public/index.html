@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title data-i18n="title">github_project_initiator · 项目管理</title>
+<title data-i18n="title">项目管理器</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <style>
 /* ============================================================
    主题变量：明 / 暗 两套，由 html[data-theme] 切换
@@ -66,7 +67,7 @@ body {
    顶栏
    ============================================================ */
 header {
-  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  display: flex; align-items: center; gap: 14px; flex-wrap: nowrap;
   padding: 14px 22px; border-bottom: 1px solid var(--border);
   background: color-mix(in srgb, var(--card) 88%, transparent);
   backdrop-filter: blur(10px);
@@ -78,7 +79,7 @@ header {
 .brand-icon { width: 20px; height: 20px; color: var(--text); flex: none; }
 :root[data-theme="light"] .brand-icon { color: #1a1f2b; }
 
-.stat { display: flex; align-items: center; gap: 6px; color: var(--text-dim); font-size: 13px; white-space: nowrap; }
+.stat { display: flex; align-items: center; gap: 6px; color: var(--text-dim); font-size: 13px; white-space: nowrap; margin-left: auto; }
 .stat b { color: var(--text); font-variant-numeric: tabular-nums; }
 .led-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex: none; }
 
@@ -308,25 +309,42 @@ main { padding: 20px 22px 56px; max-width: 1440px; margin: 0 auto; }
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
-/* 本机资源条（CPU / 内存 / 磁盘 / GPU） */
+/* 本机资源条：嵌在顶栏中间，占满品牌与操作按钮之间的空白 */
 .host-panel {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px;
-  margin-bottom: 12px; padding: 9px 14px;
-  background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+  flex: 1 1 0; min-width: 0; max-width: none;
   font-size: 12.5px; color: var(--text-dim);
 }
 .host-panel[hidden] { display: none; }
-.host-item { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+.host-inner {
+  display: flex; align-items: center; gap: 8px 12px;
+  overflow-x: auto; padding: 2px 0;
+  scrollbar-width: thin;
+  mask-image: linear-gradient(90deg, #000 96%, transparent);
+}
+.host-inner::-webkit-scrollbar { height: 4px; }
+.host-item { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; flex: none; }
 .host-item b { color: var(--text); font-weight: 600; }
 .host-bar {
-  width: 64px; height: 6px; border-radius: 3px; background: var(--btn-bg);
-  overflow: hidden; display: inline-block;
+  width: 56px; height: 6px; border-radius: 3px; background: var(--btn-bg);
+  overflow: hidden; display: inline-block; flex: none;
 }
 .host-bar > i { display: block; height: 100%; border-radius: 3px; background: var(--accent); }
 .host-bar.warn > i { background: var(--amber); }
 .host-bar.crit > i { background: var(--red); }
 .host-num { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 12px; }
 .host-title { color: var(--text-faint); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.host-gpu-name {
+  max-width: 110px; overflow: hidden; text-overflow: ellipsis;
+  display: inline-block; vertical-align: bottom;
+}
+/* 空间不足时按重要度收缩：先藏 GPU 显存/温度，再藏磁盘，最后藏 GPU */
+@media (max-width: 1900px) { .host-gpu-mem, .host-gpu-temp { display: none; } }
+@media (max-width: 1760px) { .host-disk { display: none; } }
+@media (max-width: 1460px) { .host-gpu { display: none; } }
+@media (max-width: 1240px) {
+  header { flex-wrap: wrap; }
+  .host-panel { display: none; }
+}
 </style>
 </head>
 <body>
@@ -336,9 +354,9 @@ main { padding: 20px 22px 56px; max-width: 1440px; margin: 0 auto; }
     <svg class="brand-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M12 2C6.48 2 2 6.48 2 12c0 4.42 2.87 8.17 6.84 9.5.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.89 1.53 2.34 1.09 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.56-1.11-4.56-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02.8-.22 1.65-.33 2.5-.33s1.7.11 2.5.33c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.94.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A9.99 9.99 0 0 0 22 12c0-5.52-4.48-10-10-10z"/>
     </svg>
-    <b id="brand-name">github项目启动器</b><span class="ver" id="ver"></span>
+    <b id="brand-name">项目管理器</b><span class="ver" id="ver"></span>
   </div>
-  <div class="spacer"></div>
+  <section class="host-panel" id="host-panel" hidden></section>
   <div class="stat">
     <span class="led-dot"></span>
     <span data-i18n="running">运行</span> <b id="cnt-run">–</b> / <b id="cnt-total">–</b>
@@ -361,7 +379,6 @@ main { padding: 20px 22px 56px; max-width: 1440px; margin: 0 auto; }
 </header>
 
 <main>
-  <section class="host-panel" id="host-panel" hidden></section>
   <div class="grid" id="grid"></div>
   <div class="hint" id="hint" style="display:none" data-i18n="empty">没有项目。编辑 data/registry.json 添加。</div>
 </main>
@@ -519,8 +536,8 @@ main { padding: 20px 22px 56px; max-width: 1440px; margin: 0 auto; }
    ============================================================ */
 const I18N = {
   zh: {
-    title: 'github项目启动器 · 项目管理',
-    brand: 'github项目启动器',
+    title: '项目管理器',
+    brand: '项目管理器',
     running: '运行', startAll: '全部启动', updateAll: '批量更新', stopAll: '全部停止',
     close: '关闭', empty: '没有项目。编辑 data/registry.json 添加。',
     runningStatus: '运行中', stoppedStatus: '未运行', starting: '启动中…', stopping: '停止中…',
@@ -622,8 +639,8 @@ const I18N = {
     },
   },
   en: {
-    title: 'github_project_initiator · Project Manager',
-    brand: 'github_project_initiator',
+    title: 'Project Manager',
+    brand: 'Project Manager',
     running: 'Running', startAll: 'Start All', updateAll: 'Update All', stopAll: 'Stop All',
     close: 'Close', empty: 'No projects. Edit data/registry.json to add some.',
     runningStatus: 'Running', stoppedStatus: 'Stopped', starting: 'Starting…', stopping: 'Stopping…',
@@ -835,19 +852,22 @@ function fmtBytes(n) {
   return `${v >= 100 ? Math.round(v) : v.toFixed(1)} ${units[i]}`;
 }
 
+/** 百分比条：按使用率上色（≥70% 黄，≥90% 红） */
+function hostBar(usage) {
+  if (!Number.isFinite(usage)) return '';
+  const pct = Math.max(0, Math.min(100, Math.round(usage * 100)));
+  return `<span class="host-bar ${usage >= 0.9 ? 'crit' : usage >= 0.7 ? 'warn' : ''}"><i style="width:${pct}%"></i></span>`;
+}
+
 /** 一个资源指标：标签 + 百分比条 + 文本；title 放详情 */
-function hostItem(label, usage, text, title) {
-  const pct = Number.isFinite(usage) ? Math.max(0, Math.min(100, Math.round(usage * 100))) : null;
-  const bar = pct === null
-    ? ''
-    : `<span class="host-bar ${usage >= 0.9 ? 'crit' : usage >= 0.7 ? 'warn' : ''}"><i style="width:${pct}%"></i></span>`;
-  return `<span class="host-item" title="${esc(title || '')}"><b>${esc(label)}</b>${bar}<span class="host-num">${esc(text)}</span></span>`;
+function hostItem(label, usage, text, title, cls = '') {
+  return `<span class="host-item ${cls}" title="${esc(title || '')}"><b>${esc(label)}</b>${hostBar(usage)}<span class="host-num">${esc(text)}</span></span>`;
 }
 
 /** 资源条 HTML（纯函数，便于单测）；数据不完整时返回空串隐藏面板 */
 function hostHtml(h) {
   if (!h || !h.cpu || !h.memory) return '';
-  const parts = [`<span class="host-item host-title">${esc(t('hostTitle'))}</span>`];
+  const parts = [];
 
   const cpu = h.cpu;
   parts.push(hostItem(
@@ -871,6 +891,7 @@ function hostHtml(h) {
       d.usage,
       `${Math.round(d.usage * 100)}%`,
       `${fmtBytes(d.usedBytes)} / ${fmtBytes(d.totalBytes)}`,
+      'host-disk',
     ));
   }
   if ((h.disks || []).length > 4) {
@@ -878,15 +899,21 @@ function hostHtml(h) {
   }
 
   for (const g of (h.gpus || [])) {
-    const name = String(g.name || 'GPU').replace(/^NVIDIA\s+/i, '');
+    // "NVIDIA GeForce GTX 1660 SUPER" → "GTX 1660 SUPER"，省 40px 又不丢型号
+    const name = String(g.name || 'GPU').replace(/^NVIDIA\s+/i, '').replace(/^GeForce\s+/i, '');
+    const title = esc(g.name || '');
     if (g.util == null) {
-      parts.push(`<span class="host-item" title="${esc(g.name || '')}"><b>${esc(t('gpu'))}</b><span class="host-num">${esc(name)}</span></span>`);
+      parts.push(`<span class="host-item host-gpu" title="${title}"><b>${esc(t('gpu'))}</b><span class="host-num host-gpu-name">${esc(name)}</span></span>`);
       continue;
     }
-    const bits = [`${Math.round(g.util * 100)}%`];
-    if (g.memTotalBytes) bits.push(`${fmtBytes(g.memUsedBytes)} / ${fmtBytes(g.memTotalBytes)}`);
-    if (g.tempC != null) bits.push(`${g.tempC}°C`);
-    parts.push(hostItem(`${t('gpu')} ${name}`, g.util, bits.join(' · '), g.name));
+    const mem = g.memTotalBytes ? `${fmtBytes(g.memUsedBytes)} / ${fmtBytes(g.memTotalBytes)}` : '';
+    const temp = g.tempC != null ? `${g.tempC}°C` : '';
+    parts.push(
+      `<span class="host-item host-gpu" title="${title}"><b>${esc(t('gpu'))}</b><span class="host-num host-gpu-name">${esc(name)}</span>`
+      + `${hostBar(g.util)}<span class="host-num">${Math.round(g.util * 100)}%</span>`
+      + `${mem ? `<span class="host-num host-gpu-mem">${esc(mem)}</span>` : ''}`
+      + `${temp ? `<span class="host-num host-gpu-temp">${esc(temp)}</span>` : ''}</span>`,
+    );
   }
 
   return parts.join('');
@@ -898,7 +925,7 @@ async function fetchHost() {
     const res = await fetch(`${API}/api/host`);
     const data = await res.json();
     const html = hostHtml(data);
-    hostPanel.innerHTML = html;
+    hostPanel.innerHTML = `<div class="host-inner">${html}</div>`;
     hostPanel.hidden = !html;
   } catch {
     hostPanel.hidden = true;
