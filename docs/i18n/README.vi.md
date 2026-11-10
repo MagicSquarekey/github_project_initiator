@@ -43,7 +43,7 @@ Cần Node.js 20+. Windows được hỗ trợ đầy đủ; Linux/macOS dùng l
 | REA | TypeScript / CLI | — | thủ công |
 | 2048 | pygame | — | git pull |
 | Grimoire-Echoes | Godot 4 | — | git pull |
-| OpenViking | Python | 1933 / 18790 | thủ công |
+| OpenViking | Python | 1933 / 18791 | thủ công |
 
 ## Bảo mật và cô lập
 

@@ -43,7 +43,7 @@ Vyžaduje Node.js 20+. Windows je plně podporován; Linux/macOS používají ve
 | REA | TypeScript / CLI | — | ručně |
 | 2048 | pygame | — | git pull |
 | Grimoire-Echoes | Godot 4 | — | git pull |
-| OpenViking | Python | 1933 / 18790 | ručně |
+| OpenViking | Python | 1933 / 18791 | ručně |
 
 ## Bezpečnost a izolace
 

@@ -92,7 +92,7 @@ const PROJECTS = [
   ['REA', 'TypeScript / CLI', '—', 2],
   ['2048', 'pygame', '—', 1],
   ['Grimoire-Echoes', 'Godot 4', '—', 1],
-  ['OpenViking', 'Python', '1933 / 18790', 2],
+  ['OpenViking', 'Python', '1933 / 18791', 2],
 ];
 
 /**

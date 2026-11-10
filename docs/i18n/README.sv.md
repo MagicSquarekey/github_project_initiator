@@ -43,7 +43,7 @@ Kräver Node.js 20+. Windows stöds fullt ut; Linux/macOS använder det inbyggda
 | REA | TypeScript / CLI | — | manuell |
 | 2048 | pygame | — | git pull |
 | Grimoire-Echoes | Godot 4 | — | git pull |
-| OpenViking | Python | 1933 / 18790 | manuell |
+| OpenViking | Python | 1933 / 18791 | manuell |
 
 ## Säkerhet och isolering
 

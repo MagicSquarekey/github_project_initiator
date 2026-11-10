@@ -121,14 +121,14 @@
         "args": ["/c", "start-libretv.cmd"],
         "cwd": "~/Desktop/LibreTV",
         "detached": true,            // 脱离管理器，管理器退出不影响它
-        // 可选：主服务就绪后共同拉起的伴随服务（见 3.4）
+        // 可选：主服务就绪后共同拉起的伴随服务（见 3.5）
         "companions": [
           {
-            "name": "vikingbot",
-            "command": "~/.openviking/bin/vikingbot.exe",
-            "args": ["gateway", "--port", "18790"],
-            "env": { "VIKINGBOT_WITH_OPENVIKING_SERVER": "1" },
-            "port": 18790,           // 声明端口才会校验就绪、参与停止/重启
+            "name": "worker",
+            "command": "~/.myapp/bin/worker.exe",
+            "args": ["--port", "18900"],
+            "env": { "WORKER_SERVER_URL": "http://127.0.0.1:8090" },
+            "port": 18900,           // 声明端口才会校验就绪、参与停止/重启
             "timeoutMs": 60000,
             "required": true         // 没起来则本次启动判失败
           }
@@ -239,8 +239,8 @@ Release 资产清单：misakano 仓库不发 checksums.txt，配置里留着 `ch
 
 ### 3.5 伴随服务：共同启停
 
-有些项目天然是两个进程：OpenViking 的主服务（1933）和 vikingbot（18790）。
-只拉起主服务会让记忆检索可用、bot 网关不可用，用户很难从看板上看出缺了什么。
+有些项目天然是两个进程：主服务 + 依赖它的伴随进程（一个 worker、一个 gateway）。
+只拉起主服务会让功能残缺，用户却很难从看板上看出缺了什么。
 `start.companions` 把这种关系声明出来，让管理器按一个整体处理：
 
 | 环节 | 行为 |
@@ -255,9 +255,16 @@ Release 资产清单：misakano 仓库不发 checksums.txt，配置里留着 `ch
 **与 `afterReady` 的区别**：`afterReady` 是旧机制，只"尽力执行一条命令"，不校验端口、
 不参与停止集合；保留它只为兼容旧配置。需要共同启停的服务一律用 `companions`。
 
-**为什么把 `env` 放进配置**：vikingbot 需要 `VIKINGBOT_WITH_OPENVIKING_SERVER=1` 和
-`VIKINGBOT_MANAGED_OV_SERVER_URL` 才能连上外部主服务。把这些写在 registry 里，
-就不用再往 `~/.openviking` 放一个 `start-bot.cmd`——启动器不修改被管项目的边界得以保持。
+**OpenViking 为什么反而没用 companions**：它的 server 和 bot 在同一个 pip wheel 里，
+server 加 `--with-bot --bot-port 18791` 就会自己拉起并托管 gateway（bot 成为子进程）。
+这比"两个平级进程"更省事——停止时按 1933 反查 PID 就能连 bot 一起收掉，也不用维护
+两套启动参数。所以它的 `services` 只声明 18791 给看板点亮，`start.companions` 留空。
+companions 适合的是"无法内嵌、必须是独立进程"的被管项目。
+
+**为什么把 `env` 放进配置**：`start.env` 与 `companions[].env` 都支持。前者解决
+"启动器必须多给一个环境变量"的场景（OpenViking 需要 `PYTHONUTF8=1`，否则 bot 打印
+Unicode 时按 GBK 编码退出）；后者让伴随进程知道主服务在哪。写在 registry 里就不用
+往被管项目目录塞启动脚本——"启动器不修改被管项目"的边界得以保持。
 
 **取舍**：只支持一层伴随关系（主服务 → companions），不做通用启动依赖图。
 AutoTestHub 那种"一个脚本同时拉起两个服务"的场景继续由项目脚本负责，
@@ -284,8 +291,9 @@ AutoTestHub 那种"一个脚本同时拉起两个服务"的场景继续由项目
 ```
 
 **主服务端口决定 `running`。** 声明了 `port` / `ports` 的项目，只有主服务端口监听才算运行中；
-只有伴随服务端口（如 vikingbot 的 18790）活着会显示"未运行"，避免 bot 单独活着时
-卡片误报运行中。伴随端口仍会出现在 `openPorts` 里，看板据此点亮子服务 LED。
+只有伴随端口（companion 或 `services` 里的子服务）活着会显示"未运行"，
+避免"bot 活着、主服务已死"被误报成运行中。这些端口仍会出现在 `openPorts` 里，
+看板据此点亮子服务 LED。
 没有主服务端口的项目（桌面程序、CLI）退化为"任一端口/进程名命中"。
 
 **不做 HTTP 探活**：探活要等首字节，慢且可能被路由 404 干扰。TCP 连上就说明端口被监听，对"启停"这个目的足够了。就绪判定交给日志匹配（`startupMatch`）或超时。
@@ -321,7 +329,7 @@ async function pidsOnPort(port) {
 |---|---|---|
 | `port` | 反查 PID → `taskkill /F /PID` | LibreTV, gpp, qoder, wb2api |
 | `port` (多端口) | 对每个端口反查，合并 PID 集合后一起杀 | AutoTestHub（8686 + 5173） |
-| `port` + `imageNames` | 端口反查（含 services / companions 声明的端口）+ 进程名，回收包装器/伴随进程 | OpenViking（1933/18790 + openviking-server.exe/vikingbot.exe） |
+| `port` + `imageNames` | 端口反查（含 services / companions 声明的端口）+ 进程名，回收包装器/伴随进程 | OpenViking（1933/18791 + openviking-server.exe/vikingbot.exe） |
 | `procname` | `taskkill /F /IM <name>.exe` | 2048、Grimoire-Echoes 等桌面程序 |
 | `command` | 执行项目自带停止脚本 | 有 `stop.bat` 的项目 |
 | `none` | 仅置状态位 | REA 这类 CLI 工具 |

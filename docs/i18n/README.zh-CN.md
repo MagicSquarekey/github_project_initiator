@@ -43,7 +43,7 @@ node src/index.js
 | REA | TypeScript / CLI | — | 手动 |
 | 2048 | pygame | — | git pull |
 | Grimoire-Echoes | Godot 4 | — | git pull |
-| OpenViking | Python | 1933 / 18790 | 手动 |
+| OpenViking | Python | 1933 / 18791 | 手动 |
 
 ## 安全与隔离
 

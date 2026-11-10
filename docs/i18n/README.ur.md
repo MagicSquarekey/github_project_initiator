@@ -43,7 +43,7 @@ Node.js 20+ درکار۔ Windows مکمل طور پر معاون؛ Linux/macOS �
 | REA | TypeScript / CLI | — | دستی |
 | 2048 | pygame | — | git pull |
 | Grimoire-Echoes | Godot 4 | — | git pull |
-| OpenViking | Python | 1933 / 18790 | دستی |
+| OpenViking | Python | 1933 / 18791 | دستی |
 
 ## سیکیورٹی اور تنہائی
 

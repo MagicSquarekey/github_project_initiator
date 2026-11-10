@@ -43,7 +43,7 @@ Node.js 20+ gerekir. Windows tam desteklenir; Linux/macOS yerleşik platform kat
 | REA | TypeScript / CLI | — | manuel |
 | 2048 | pygame | — | git pull |
 | Grimoire-Echoes | Godot 4 | — | git pull |
-| OpenViking | Python | 1933 / 18790 | manuel |
+| OpenViking | Python | 1933 / 18791 | manuel |
 
 ## Güvenlik ve yalıtım
 

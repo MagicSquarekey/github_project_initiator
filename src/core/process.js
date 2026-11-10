@@ -558,8 +558,8 @@ export async function restartProject(project) {
   const stopped = await stopProject(project);
   if (!stopped.ok) return stopped;
 
-  // 等待停止集合里的全部端口释放：伴随服务（如 vikingbot 的 18790）
-  // 没释放就重启，会让新拉起的伴随服务撞端口。
+  // 等待停止集合里的全部端口释放：伴随服务/子服务占用的端口没释放就重启，
+  // 会让新拉起的进程撞端口。
   const ports = stopPortsOf(project);
   if (ports.length > 0) {
     for (const port of ports) {

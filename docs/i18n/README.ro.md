@@ -43,7 +43,7 @@ Necesită Node.js 20+. Windows este complet acceptat; Linux/macOS folosesc strat
 | REA | TypeScript / CLI | — | manual |
 | 2048 | pygame | — | git pull |
 | Grimoire-Echoes | Godot 4 | — | git pull |
-| OpenViking | Python | 1933 / 18790 | manual |
+| OpenViking | Python | 1933 / 18791 | manual |
 
 ## Securitate și izolare
 

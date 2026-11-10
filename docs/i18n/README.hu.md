@@ -43,7 +43,7 @@ Node.js 20+ szükséges. A Windows teljesen támogatott; a Linux/macOS a beépí
 | REA | TypeScript / CLI | — | kézi |
 | 2048 | pygame | — | git pull |
 | Grimoire-Echoes | Godot 4 | — | git pull |
-| OpenViking | Python | 1933 / 18790 | kézi |
+| OpenViking | Python | 1933 / 18791 | kézi |
 
 ## Biztonság és elkülönítés
 

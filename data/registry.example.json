@@ -243,38 +243,21 @@
       "enabled": true,
       "kind": "python-service",
       "start": {
-        "command": "${LOCALAPPDATA}/Programs/Python/Python311/Scripts/openviking-server.exe",
-        "args": [],
-        "detached": true,
-        "companions": [
-          {
-            "name": "vikingbot",
-            "command": "${LOCALAPPDATA}/Programs/Python/Python311/Scripts/vikingbot.exe",
-            "args": [
-              "gateway",
-              "--host",
-              "127.0.0.1",
-              "--port",
-              "18790",
-              "--config",
-              "~/.openviking/ov.conf"
-            ],
-            "env": {
-              "VIKINGBOT_WITH_OPENVIKING_SERVER": "1",
-              "VIKINGBOT_MANAGED_OV_SERVER_URL": "http://127.0.0.1:1933"
-            },
-            "port": 18790,
-            "timeoutMs": 60000,
-            "required": true
-          }
-        ]
+        "command": "${APPDATA}/Python/Python311/Scripts/openviking-server.exe",
+        "args": [
+          "--with-bot",
+          "--bot-port",
+          "18791"
+        ],
+        "env": {
+          "PYTHONUTF8": "1",
+          "PYTHONIOENCODING": "utf-8"
+        },
+        "detached": true
       },
       "stop": {
         "strategy": "port",
-        "ports": [
-          1933,
-          18790
-        ],
+        "port": 1933,
         "imageNames": [
           "openviking-server.exe",
           "vikingbot.exe"
@@ -282,12 +265,19 @@
       },
       "url": "http://127.0.0.1:1933",
       "port": 1933,
+      "services": [
+        {
+          "label": "vikingbot",
+          "port": 18791,
+          "url": "http://127.0.0.1:18791"
+        }
+      ],
       "startupTimeoutMs": 120000,
       "startupMatch": "session manager|OpenViking HTTP Server is running|Server is ready|responding on port 1933|already running",
       "update": {
         "strategy": "none"
       },
-      "notes": "pip 安装的常驻服务，端口 1933，冷启动约 40 秒。vikingbot（18790）通过 start.companions 与主服务共同启停：主服务就绪后拉起并校验端口，停止/重启一起回收。非 git 仓库，升级请手动 pip install -U openviking。"
+      "notes": "pip 安装的常驻记忆服务，端口 1933，冷启动约 40 秒。以 --with-bot 启动：主服务自己拉起并托管 bot 网关（18791），所以不需要 start.companions，services 只声明 18791 供看板点亮。PYTHONUTF8/PYTHONIOENCODING 必填——bot 打印 Unicode，默认 GBK 控制台会 UnicodeEncodeError 退出。stop 先按 1933 反查 PID，再按两个 imageName 回收包装器与 bot 子进程。非 git 仓库；一键更新可把 update.strategy 改成 command 调用本仓库 scripts/update-openviking.ps1（需填管理器仓库的绝对路径）。"
     }
   ]
 }

@@ -43,7 +43,7 @@ Node.js 20+ が必要です。Windows は完全対応、Linux/macOS は内蔵プ
 | REA | TypeScript / CLI | — | 手動 |
 | 2048 | pygame | — | git pull |
 | Grimoire-Echoes | Godot 4 | — | git pull |
-| OpenViking | Python | 1933 / 18790 | 手動 |
+| OpenViking | Python | 1933 / 18791 | 手動 |
 
 ## セキュリティと分離
 
