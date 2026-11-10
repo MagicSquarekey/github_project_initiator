@@ -53,7 +53,7 @@ export const SELF_PROJECT_NAME = '项目管理器';
  * 用户可见版本号（带 V 前缀）。
  * package.json 的 version 字段按 npm 规范不带 V 前缀，两者语义一致。
  */
-export const VERSION = 'V0.0.5';
+export const VERSION = 'V0.0.6';
 
 /** 当前平台是否受支持（停止能力依赖 netstat/taskkill，仅 Windows 完整可用） */
 export const PLATFORM_SUPPORTED = process.platform === 'win32';
