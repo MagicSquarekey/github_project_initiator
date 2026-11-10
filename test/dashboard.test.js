@@ -393,6 +393,35 @@ test('多服务项目部分端口未起时只点亮已起的', () => {
   assert.equal((h.match(/led off/g) || []).length, 1, '8686 应显示未就绪');
 });
 
+test('部分运行：主服务在、伴随服务掉线时显示部分运行与补齐按钮', () => {
+  const { render, grid } = loadDashboard();
+  render([proj({
+    id: 'ov', name: 'OpenViking', running: true, runningVia: 'port', openPorts: [1933],
+    degraded: true, startable: true,
+    services: [{ label: 'vikingbot', port: 18790, managed: true }],
+  })]);
+  const h = grid.children.join('');
+  assert.match(h, /部分运行/);
+  assert.match(h, /补齐服务/);
+  assert.match(h, /data-act="start"/, '应提供补齐缺失服务的启动动作');
+  assert.match(h, /class="led warn"/, '状态灯用琥珀色表示部分运行');
+  // vikingbot 的 LED 应为 off（1933 在 openPorts 里，18790 不在）
+  assert.equal((h.match(/led off/g) || []).length, 1, '伴随服务应显示未就绪');
+  assert.match(h, /vikingbot:18790/);
+});
+
+test('完全运行时没有补齐按钮', () => {
+  const { render, grid } = loadDashboard();
+  render([proj({
+    id: 'ov', name: 'OpenViking', running: true, runningVia: 'port', openPorts: [1933, 18790],
+    degraded: false, startable: true,
+    services: [{ label: 'vikingbot', port: 18790, managed: true }],
+  })]);
+  const h = grid.children.join('');
+  assert.doesNotMatch(h, /data-act="start"/);
+  assert.match(h, /运行中/);
+});
+
 test('i18n：中英文案都存在且键对齐', () => {
   const { I18N } = loadDashboard();
   assert.ok(I18N.zh && I18N.en);

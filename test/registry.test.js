@@ -213,6 +213,60 @@ test('start.afterReady 结构校验', () => {
   assert.equal(check([badArgs]).valid, false);
 });
 
+test('start.companions 结构校验', () => {
+  const bot = {
+    name: 'vikingbot',
+    command: 'vikingbot.exe',
+    args: ['gateway', '--port', '18790'],
+    env: { VIKINGBOT_MANAGED_OV_SERVER_URL: 'http://127.0.0.1:1933' },
+    port: 18790,
+    timeoutMs: 60000,
+    required: true,
+  };
+  const ok = validProject({
+    start: { command: 'server.exe', args: [], companions: [bot] },
+  });
+  assert.equal(check([ok]).valid, true, check([ok]).errors.join('\n'));
+
+  const base = { command: 'server.exe', args: [] };
+  const cases = [
+    [{ ...base, companions: {} }, /companions: 必须是数组/],
+    [{ ...base, companions: [{ command: '' }] }, /command: 必填字符串/],
+    [{ ...base, companions: [{ ...bot, args: 'x' }] }, /args: 必须是字符串数组/],
+    [{ ...base, companions: [{ ...bot, env: { A: 1 } }] }, /env\.A: 必须是字符串/],
+    [{ ...base, companions: [{ ...bot, port: 0 }] }, /port: 必须是 1-65535/],
+    [{ ...base, companions: [{ ...bot, port: MANAGER_PORT }] }, /管理器自身端口/],
+    [{ ...base, companions: [{ ...bot, timeoutMs: -1 }] }, /timeoutMs: 必须是非负数/],
+    [{ ...base, companions: [{ ...bot, required: 'yes' }] }, /required: 必须是布尔值/],
+    [{ ...base, companions: [{ ...bot, name: '' }] }, /name: 必须是非空字符串/],
+  ];
+  for (const [start, pattern] of cases) {
+    const r = check([validProject({ start })]);
+    assert.equal(r.valid, false, `应拒绝：${JSON.stringify(start)}`);
+    assert.match(r.errors.join(), pattern);
+  }
+});
+
+test('companions 的端口参与跨项目唯一性校验', () => {
+  const a = validProject({
+    id: 'a',
+    port: 4000,
+    stop: { strategy: 'port', port: 4000 },
+    start: { command: 'server.exe', args: [], companions: [{ command: 'bot.exe', port: 4100 }] },
+  });
+  const b = validProject({
+    id: 'b',
+    port: 4001,
+    stop: { strategy: 'port', port: 4001 },
+    start: { command: 'other.exe', args: [] },
+    // 显式占用 a 的伴随端口
+    services: [{ label: 'x', port: 4100 }],
+  });
+  const r = check([a, b]);
+  assert.equal(r.valid, false);
+  assert.match(r.errors.join(), /端口 4100 同时被/);
+});
+
 test('version 静态覆盖必须是非空字符串', () => {
   assert.equal(check([validProject({ version: '1.2.3' })]).valid, true);
   assert.equal(check([validProject({ version: '' })]).valid, false);
@@ -229,6 +283,25 @@ test('versionCommand 结构校验', () => {
     check([validProject({ versionCommand: { command: 'node', args: [], timeoutMs: -1 } })]).valid,
     false,
   );
+});
+
+test('versionCommand.match 必须是可编译的正则', () => {
+  const good = validProject({
+    versionCommand: { command: 'node', args: [], match: String.raw`"version"\s*:\s*"([^"]+)"` },
+  });
+  assert.equal(check([good]).valid, true, check([good]).errors.join('\n'));
+
+  assert.equal(
+    check([validProject({ versionCommand: { command: 'node', args: [], match: '' } })]).valid,
+    false,
+  );
+  assert.equal(
+    check([validProject({ versionCommand: { command: 'node', args: [], match: 123 } })]).valid,
+    false,
+  );
+  const bad = validProject({ versionCommand: { command: 'node', args: [], match: '([unclosed' } });
+  assert.equal(check([bad]).valid, false);
+  assert.match(check([bad]).errors.join(), /match: 不是合法正则/);
 });
 
 test('cli-tool 允许 start.command 为 null', () => {

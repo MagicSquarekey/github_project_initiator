@@ -18,6 +18,52 @@ import { readProjectLog } from '../util/logger.js';
 import { logger } from '../util/logger.js';
 
 /**
+ * 注册表里声明的伴随服务（与主服务共同启停）。
+ *
+ * @param {any} project
+ * @returns {any[]}
+ */
+function companionsOf(project) {
+  const list = project.start?.companions;
+  if (!Array.isArray(list)) return [];
+  return list.filter((c) => c && typeof c.command === 'string' && c.command.length > 0);
+}
+
+function companionLabel(c) {
+  if (typeof c.name === 'string' && c.name) return c.name;
+  const base = String(c.command ?? '').split(/[\\/]/).pop() || 'companion';
+  return base.replace(/\.exe$/i, '');
+}
+
+/**
+ * 看板要展示的服务清单：显式声明的 services + 伴随服务（自动补一条）。
+ *
+ * 这样 OpenViking 的 bot 不需要在 services 和 companions 里各写一遍端口，
+ * 避免两处配置漂移。
+ *
+ * @param {any} project
+ * @returns {any[]|null}
+ */
+function serviceListOf(project) {
+  const list = Array.isArray(project.services) ? project.services.map((s) => ({ ...s })) : [];
+  const seen = new Set(list.map((s) => s?.port).filter(Number.isInteger));
+
+  for (const c of companionsOf(project)) {
+    if (!Number.isInteger(c.port) || seen.has(c.port)) continue;
+    seen.add(c.port);
+    list.push({
+      label: companionLabel(c),
+      port: c.port,
+      url: c.url ?? null,
+      managed: true,
+      required: c.required !== false,
+    });
+  }
+
+  return list.length > 0 ? list : null;
+}
+
+/**
  * 单个项目的完整状态（看板卡片需要的全部字段）。
  *
  * @param {any} project
@@ -32,6 +78,16 @@ export async function describeProject(project) {
   ]);
   const rt = getRuntime(project.id);
   const ports = portsOf(project);
+  const services = serviceListOf(project);
+  const openPorts = probe.openPorts ?? [];
+
+  // 部分运行：主服务在跑，但有 required 的伴随服务没起来。
+  // 看板据此显示"部分运行"，并提供"补齐服务"动作（start 会跳过主服务只补缺失项）。
+  const degraded =
+    probe.running &&
+    companionsOf(project).some(
+      (c) => Number.isInteger(c.port) && c.required !== false && !openPorts.includes(c.port),
+    );
 
   // 可更新性：
   //   git / git-fork → 必须是 git 仓库（启动器绝不为更新而 git init）
@@ -65,15 +121,17 @@ export async function describeProject(project) {
 
     running: probe.running,
     runningVia: probe.via,
-    openPorts: probe.openPorts ?? [],
+    openPorts,
     pids: probe.pids ?? [],
     phase: rt.phase,
     lastError: rt.lastError,
+    // 主服务在跑但有 required 伴随服务缺失：看板显示"部分运行"并允许补齐
+    degraded,
 
     ports,
     url: project.url ?? null,
-    // 多服务项目（如 AutoTestHub 的 backend+frontend）的子服务清单，看板用来展示
-    services: Array.isArray(project.services) ? project.services : null,
+    // 多服务/伴随服务清单，看板用来逐个显示就绪状态
+    services,
     // 自身条目的运行时长来自进程本身；其他项目来自管理器的启动记录
     uptimeSec: self
       ? Math.floor(process.uptime())

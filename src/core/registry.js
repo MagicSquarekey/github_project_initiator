@@ -111,6 +111,13 @@ function withExpandedPaths(project) {
           : project.start.afterReady.args,
       };
     }
+    if (Array.isArray(project.start.companions)) {
+      next.start.companions = project.start.companions.map((c) => ({
+        ...c,
+        command: typeof c?.command === 'string' ? expandPath(c.command) : c?.command,
+        args: Array.isArray(c?.args) ? c.args.map(expandPath) : c?.args,
+      }));
+    }
   }
   if (project.stop) {
     next.stop = {
@@ -238,6 +245,67 @@ function validateProject(p, index) {
       if (ar.detached !== undefined && typeof ar.detached !== 'boolean') {
         errors.push(`${where}.start.afterReady.detached: 必须是布尔值`);
       }
+    }
+  }
+
+  // start.env：启动时附加的环境变量（如 vikingbot 需要声明外部 OpenViking 服务）。
+  if (start?.env !== undefined) {
+    if (!start.env || typeof start.env !== 'object' || Array.isArray(start.env)) {
+      errors.push(`${where}.start.env: 必须是对象`);
+    } else {
+      for (const [k, v] of Object.entries(start.env)) {
+        if (typeof v !== 'string') errors.push(`${where}.start.env.${k}: 必须是字符串`);
+      }
+    }
+  }
+
+  // companions：主服务就绪后需要一并拉起的伴随服务（如 OpenViking 的 vikingbot）。
+  // 与 afterReady 的区别是带 port 就绪校验、参与启动结果与停止/重启端口集合。
+  if (start?.companions !== undefined) {
+    if (!Array.isArray(start.companions)) {
+      errors.push(`${where}.start.companions: 必须是数组`);
+    } else {
+      start.companions.forEach((c, ci) => {
+        const cw = `${where}.start.companions[${ci}]`;
+        if (!c || typeof c !== 'object' || Array.isArray(c)) {
+          errors.push(`${cw}: 必须是对象`);
+          return;
+        }
+        if (typeof c.command !== 'string' || c.command.length === 0) {
+          errors.push(`${cw}.command: 必填字符串`);
+        }
+        if (c.args !== undefined && (!Array.isArray(c.args) || c.args.some((a) => typeof a !== 'string'))) {
+          errors.push(`${cw}.args: 必须是字符串数组`);
+        }
+        if (c.env !== undefined) {
+          if (!c.env || typeof c.env !== 'object' || Array.isArray(c.env)) {
+            errors.push(`${cw}.env: 必须是对象`);
+          } else {
+            for (const [k, v] of Object.entries(c.env)) {
+              if (typeof v !== 'string') errors.push(`${cw}.env.${k}: 必须是字符串`);
+            }
+          }
+        }
+        if (c.detached !== undefined && typeof c.detached !== 'boolean') {
+          errors.push(`${cw}.detached: 必须是布尔值`);
+        }
+        if (c.port !== undefined) {
+          if (!Number.isInteger(c.port) || c.port < 1 || c.port > 65535) {
+            errors.push(`${cw}.port: 必须是 1-65535 的整数`);
+          } else if (c.port === MANAGER_PORT) {
+            errors.push(`${cw}.port: ${MANAGER_PORT} 是管理器自身端口，不能复用`);
+          }
+        }
+        if (c.timeoutMs !== undefined && (typeof c.timeoutMs !== 'number' || c.timeoutMs < 0)) {
+          errors.push(`${cw}.timeoutMs: 必须是非负数`);
+        }
+        if (c.required !== undefined && typeof c.required !== 'boolean') {
+          errors.push(`${cw}.required: 必须是布尔值`);
+        }
+        if (c.name !== undefined && (typeof c.name !== 'string' || c.name.length === 0)) {
+          errors.push(`${cw}.name: 必须是非空字符串`);
+        }
+      });
     }
   }
 
@@ -387,6 +455,18 @@ function validateProject(p, index) {
       if (vc.timeoutMs !== undefined && (typeof vc.timeoutMs !== 'number' || vc.timeoutMs < 0)) {
         errors.push(`${where}.versionCommand.timeoutMs: 必须是非负数`);
       }
+      // match：可选正则，用于从 JSON 等输出里提取版本字段
+      if (vc.match !== undefined) {
+        if (typeof vc.match !== 'string' || vc.match.length === 0) {
+          errors.push(`${where}.versionCommand.match: 必须是非空字符串（正则）`);
+        } else {
+          try {
+            new RegExp(vc.match);
+          } catch (err) {
+            errors.push(`${where}.versionCommand.match: 不是合法正则：${err.message}`);
+          }
+        }
+      }
     }
   }
 
@@ -432,6 +512,10 @@ export function validateRegistry(data) {
       ...(p.port ? [p.port] : []),
       ...(Array.isArray(p.stop?.ports) ? p.stop.ports : []),
       ...(p.stop?.port ? [p.stop.port] : []),
+      ...(Array.isArray(p.services) ? p.services.map((s) => s?.port).filter(Number.isInteger) : []),
+      ...(Array.isArray(p.start?.companions)
+        ? p.start.companions.map((c) => c?.port).filter(Number.isInteger)
+        : []),
     ]);
     for (const pt of own) {
       if (!Number.isInteger(pt)) continue;

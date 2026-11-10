@@ -82,14 +82,15 @@ export function execPowershell(script, options = {}) {
  *
  * @param {string} file
  * @param {string[]} args
- * @param {{ cwd?: string, onStdout?: (line: string) => void, onStderr?: (line: string) => void, onExit?: (info: { code: number|null, signal: string|null }) => void, detached?: boolean }} handlers
+ * @param {{ cwd?: string, env?: NodeJS.ProcessEnv, onStdout?: (line: string) => void, onStderr?: (line: string) => void, onExit?: (info: { code: number|null, signal: string|null }) => void, onError?: (err: Error) => void, detached?: boolean }} handlers
  * @returns {{ pid: number|null, kill: (signal?: NodeJS.Signals) => void }}
  */
 export function spawnLineReader(file, args, handlers = {}) {
-  const { cwd, onStdout, onStderr, onExit, detached = false } = handlers;
+  const { cwd, env, onStdout, onStderr, onExit, onError, detached = false } = handlers;
 
   const child = spawn(file, args, {
     cwd,
+    env,
     detached,
     windowsHide: true,
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -124,6 +125,7 @@ export function spawnLineReader(file, args, handlers = {}) {
 
   child.on('error', (err) => {
     onStderr?.(`[spawn error] ${err.message}`);
+    onError?.(err);
   });
 
   return {

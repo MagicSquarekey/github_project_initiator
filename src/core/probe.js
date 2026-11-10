@@ -87,11 +87,22 @@ export function isPidAlive(pid) {
  * @returns {Promise<{ running: boolean, via: 'port'|'procname'|'pid'|'self'|null, pids: number[] }>}
  */
 export async function probeProject(project) {
-  // 端口来源有四处（ports / port / stop.ports / stop.port），同一端口常被重复声明
-  // （如 backend 的 8686 同时出现在 port 和 stop.port），必须去重后再探测。
-  const portSet = new Set([
+  // 主服务端口：只有 port / ports。它们决定 running——伴随服务（如 vikingbot）
+  // 单独活着不能把整个项目显示成"运行中"。
+  const mainPorts = new Set([
     ...(Array.isArray(project.ports) ? project.ports : []),
     ...(project.port ? [project.port] : []),
+  ]);
+  for (const p of [...mainPorts]) if (!Number.isInteger(p)) mainPorts.delete(p);
+
+  // 探测范围要覆盖所有声明过的端口：主服务、子服务、伴随服务、停止端口。
+  // 同一端口常被重复声明（如 backend 的 8686 同时出现在 port 和 stop.port），去重后再探测。
+  const portSet = new Set([
+    ...mainPorts,
+    ...(Array.isArray(project.services) ? project.services.map((s) => s?.port) : []),
+    ...(Array.isArray(project.start?.companions)
+      ? project.start.companions.map((c) => c?.port)
+      : []),
     ...(Array.isArray(project.stop?.ports) ? project.stop.ports : []),
     ...(project.stop?.port ? [project.stop.port] : []),
   ]);
@@ -104,12 +115,13 @@ export async function probeProject(project) {
   }
 
   // 1. 端口探测
+  const open = [];
   if (ports.length > 0) {
-    const open = [];
     for (const port of ports) {
       if (await isPortOpen(port)) open.push(port);
     }
-    if (open.length > 0) {
+    const mainOpen = mainPorts.size === 0 ? open.length > 0 : open.some((p) => mainPorts.has(p));
+    if (open.length > 0 && mainOpen) {
       return { running: true, via: 'port', openPorts: open, pids: [] };
     }
   }
@@ -119,14 +131,15 @@ export async function probeProject(project) {
   if (imageName) {
     const pids = await pidsByImageName(imageName);
     if (pids.length > 0) {
-      return { running: true, via: 'procname', openPorts: [], pids };
+      return { running: true, via: 'procname', openPorts: open, pids };
     }
   }
 
   // 3. PID 探测（管理器自己启动且拿到了 PID 时）
   if (project.state?.pid && isPidAlive(project.state.pid)) {
-    return { running: true, via: 'pid', openPorts: [], pids: [project.state.pid] };
+    return { running: true, via: 'pid', openPorts: open, pids: [project.state.pid] };
   }
 
-  return { running: false, via: null, openPorts: [], pids: [] };
+  // 主服务没起来：openPorts 仍返回仍活着的伴随端口，看板据此点亮子服务 LED
+  return { running: false, via: null, openPorts: open, pids: [] };
 }

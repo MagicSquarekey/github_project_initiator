@@ -63,9 +63,10 @@ export function getRuntime(projectId) {
 }
 
 /**
- * 主服务就绪后的附加动作（如 OpenViking 的 bot gateway）。
+ * 主服务就绪后的附加动作（旧机制，保留兼容）。
  *
- * 附加动作失败只记日志，不影响主服务已经启动成功的事实。
+ * 只负责"拉起来"，不校验结果、不参与停止端口集合。
+ * 需要共同启停的伴随服务请用 start.companions。
  *
  * @param {any} project
  */
@@ -98,6 +99,167 @@ function portsOf(project) {
 }
 
 /**
+ * 伴随服务：主服务就绪后一起拉起、一起停止的进程（如 OpenViking 的 vikingbot）。
+ *
+ * @param {any} project
+ * @returns {any[]}
+ */
+function companionsOf(project) {
+  const list = project.start?.companions;
+  if (!Array.isArray(list)) return [];
+  return list.filter((c) => c && typeof c.command === 'string' && c.command.length > 0);
+}
+
+/**
+ * 停止/重启需要覆盖的全部端口。
+ *
+ * 除了 stop 里显式声明的端口，还纳入主服务、子服务、伴随服务声明的端口——
+ * 否则"共同启停"会漏掉只写在 companions 里的 bot。
+ *
+ * @param {any} project
+ * @returns {number[]}
+ */
+function stopPortsOf(project) {
+  const set = new Set();
+  for (const p of project.stop?.ports ?? []) if (Number.isInteger(p)) set.add(p);
+  if (Number.isInteger(project.stop?.port)) set.add(project.stop.port);
+  for (const p of portsOf(project)) set.add(p);
+  for (const s of project.services ?? []) if (Number.isInteger(s?.port)) set.add(s.port);
+  for (const c of companionsOf(project)) if (Number.isInteger(c.port)) set.add(c.port);
+  return [...set];
+}
+
+function companionName(c) {
+  if (typeof c.name === 'string' && c.name) return c.name;
+  const base = String(c.command ?? '').split(/[\\/]/).pop() || 'companion';
+  return base.replace(/\.exe$/i, '');
+}
+
+/**
+ * 等待端口进入监听；aborted() 返回 true 时提前放弃（如伴随进程直接退出）。
+ *
+ * @param {number} port
+ * @param {number} timeoutMs
+ * @param {() => boolean} [aborted]
+ * @returns {Promise<boolean>}
+ */
+async function waitForPort(port, timeoutMs, aborted) {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    if (await isPortOpen(port)) return true;
+    if (aborted?.()) return false;
+    if (Date.now() >= deadline) return false;
+    await sleep(500);
+  }
+}
+
+/**
+ * 拉起缺失的伴随服务，并按端口校验就绪。
+ *
+ * 端口已在监听的伴随服务会被跳过（视为已在运行），这样"主服务已启动、
+ * bot 掉了"的场景点一次启动就能补齐，而不会重复拉起。
+ *
+ * @param {any} project
+ * @param {any[]} companions
+ * @param {{ write: (line: string) => void }} projectLog
+ * @returns {Promise<{ ok: boolean, message: string, started: string[], skipped: string[] }>}
+ */
+async function ensureCompanions(project, companions, projectLog) {
+  const started = [];
+  const skipped = [];
+  const failed = [];
+
+  for (const c of companions) {
+    const name = companionName(c);
+
+    if (Number.isInteger(c.port) && (await isPortOpen(c.port))) {
+      projectLog.write(`[companion:${name}] 端口 ${c.port} 已在监听，跳过启动`);
+      skipped.push(name);
+      continue;
+    }
+
+    projectLog.write(
+      `--- 启动伴随服务 ${name}：${c.command} ${(c.args ?? []).join(' ')} ---`,
+    );
+
+    let exited = false;
+    let exitCode = null;
+    let spawnError = null;
+    try {
+      spawnLineReader(c.command, c.args ?? [], {
+        cwd: project.path,
+        detached: c.detached !== false,
+        env: c.env ? { ...process.env, ...c.env } : undefined,
+        onStdout: (line) => projectLog.write(`[companion:${name}] ${line}`),
+        onStderr: (line) => projectLog.write(`[companion:${name}] ${line}`),
+        onExit: ({ code }) => {
+          exited = true;
+          exitCode = code;
+        },
+        onError: (err) => {
+          spawnError = err;
+        },
+      });
+    } catch (err) {
+      failed.push({ name, required: c.required !== false, reason: `无法启动：${err.message}` });
+      continue;
+    }
+
+    // 没有声明端口的伴随服务无法验证，只能按"已拉起"处理
+    if (!Number.isInteger(c.port)) {
+      started.push(name);
+      continue;
+    }
+
+    const timeoutMs = c.timeoutMs ?? 60000;
+    const ready = await waitForPort(
+      c.port,
+      timeoutMs,
+      () => Boolean(spawnError) || (exited && exitCode !== 0),
+    );
+
+    if (ready) {
+      projectLog.write(`[companion:${name}] 端口 ${c.port} 已就绪`);
+      started.push(name);
+    } else {
+      const reason = spawnError
+        ? `无法启动：${spawnError.message}`
+        : exited
+          ? `进程已退出（code=${exitCode}），端口 ${c.port} 未监听`
+          : `端口 ${c.port} 在 ${timeoutMs}ms 内未监听`;
+      projectLog.write(`[error] 伴随服务 ${name}：${reason}`);
+      failed.push({ name, required: c.required !== false, reason });
+    }
+  }
+
+  const requiredFailed = failed.filter((f) => f.required);
+  if (requiredFailed.length > 0) {
+    return {
+      ok: false,
+      message: requiredFailed.map((f) => `伴随服务 ${f.name} 未就绪（${f.reason}）`).join('；'),
+      started,
+      skipped,
+    };
+  }
+  return { ok: true, message: '', started, skipped };
+}
+
+/**
+ * 把伴随服务的处理结果拼进启动消息。
+ *
+ * @param {string} base
+ * @param {{ started: string[], skipped: string[] }} ensured
+ * @returns {string}
+ */
+function companionSummary(base, ensured) {
+  if (ensured.started.length === 0 && ensured.skipped.length === 0) return base;
+  const parts = [];
+  if (ensured.started.length > 0) parts.push(`已启动 ${ensured.started.join('、')}`);
+  if (ensured.skipped.length > 0) parts.push(`已在运行 ${ensured.skipped.join('、')}`);
+  return `${base}；伴随服务：${parts.join('，')}`;
+}
+
+/**
  * 启动一个项目。
  *
  * @param {any} project registry 条目
@@ -115,25 +277,32 @@ export async function startProject(project) {
     return { ok: true, message: '正在启动中', pid: rt.pid };
   }
 
-  /** 启动成功时顺带执行 afterReady 附加动作 */
-  const finish = (result) => {
-    if (result.ok) runAfterReady(project);
-    return result;
-  };
-
+  const projectLog = createProjectLogger(project.id);
+  const companions = companionsOf(project);
   const ports = portsOf(project);
 
-  // 启动前校验端口空闲：避免误杀"占用者"，也避免自己起一个必然失败的服务
-  for (const port of ports) {
-    if (await isPortOpen(port)) {
+  // 主服务已在运行：不重复拉起，只补齐缺失的伴随服务。
+  // 这是"共同启停"的关键路径——主服务在、bot 掉线时点一次启动就能补齐。
+  const mainOpen = await firstOpenPort(ports);
+  if (mainOpen) {
+    const ensured = await ensureCompanions(project, companions, projectLog);
+    rt.phase = 'running';
+    if (!ensured.ok) {
+      rt.lastError = ensured.message;
       return {
         ok: false,
-        message: `端口 ${port} 已被占用，拒绝启动。请先停止占用该端口的进程。`,
+        message: `主服务已在运行（端口 ${mainOpen}），但${ensured.message}`,
+        pid: rt.pid,
       };
     }
+    rt.lastError = null;
+    return {
+      ok: true,
+      message: companionSummary(`已在运行（端口 ${mainOpen}）`, ensured),
+      pid: rt.pid,
+    };
   }
 
-  const projectLog = createProjectLogger(project.id);
   projectLog.write(
     `--- 启动 ${project.name}：${project.start.command} ${(project.start.args ?? []).join(' ')} ---`,
   );
@@ -170,6 +339,7 @@ export async function startProject(project) {
 
   const spawned = spawnLineReader(project.start.command, project.start.args ?? [], {
     cwd: project.path,
+    env: project.start.env ? { ...process.env, ...project.start.env } : undefined,
     detached: project.start.detached !== false,
     onStdout: onLine,
     onStderr: onLine,
@@ -192,37 +362,82 @@ export async function startProject(project) {
   rt.pid = spawned.pid;
 
   const timeoutMs = project.startupTimeoutMs ?? 60000;
-  const how = await Promise.race([readyPromise, sleep(timeoutMs).then(() => 'timeout')]);
-
-  // 日志匹配最快最准
-  if (how === 'log') {
-    rt.phase = 'running';
-    return finish({ ok: true, message: '已启动（日志匹配就绪）', pid: spawned.pid });
+  // 等待就绪。日志匹配最快，但 Windows 上 detached 子进程会丢掉 stdout，
+  // 日志可能永远不出现（表现为卡片一直"处理中"直到超时），
+  // 因此等待期间每 500ms 轮询一次端口，端口一通立即判定就绪。
+  let readyHow = null;
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const hit = await Promise.race([readyPromise, sleep(500).then(() => 'tick')]);
+    if (hit === 'log') {
+      readyHow = '日志匹配就绪';
+      break;
+    }
+    if (ports.length > 0) {
+      const openPort = await firstOpenPort(ports);
+      if (openPort) {
+        projectLog.write(`[info] 端口 ${openPort} 已就绪，判定为启动成功`);
+        readyHow = `端口 ${openPort} 就绪`;
+        break;
+      }
+    } else if (rt.launcherExited) {
+      // 无端口项目（桌面程序、CLI）无法用端口验证，只能信任"启动器正常退出"
+      projectLog.write('[info] 启动器已退出且无端口可探测，判定为启动成功');
+      readyHow = '启动器已退出';
+      break;
+    }
   }
 
-  // 超时（或启动器已退出）：用端口探测做最终裁决。
-  // 无端口项目（桌面程序、CLI）退化为进程名探测。
-  const openPort = await firstOpenPort(ports);
-  if (openPort) {
-    rt.phase = 'running';
-    projectLog.write(`[info] 端口 ${openPort} 已就绪，判定为启动成功`);
-    return finish({ ok: true, message: `已启动（端口 ${openPort} 就绪）`, pid: spawned.pid });
+  if (!readyHow) {
+    rt.phase = 'failed';
+    rt.lastError = rt.launcherExited
+      ? '启动器已退出，但服务端口未就绪'
+      : `启动超时（${timeoutMs}ms）且端口未就绪`;
+    projectLog.write(`[error] ${rt.lastError}`);
+    return { ok: false, message: rt.lastError };
   }
 
-  // 端口没起来，但启动器已退出：说明脚本自己跑完了（可能是构建步骤，也可能是失败）
-  if (rt.launcherExited && ports.length === 0) {
-    // 无端口项目无法用端口验证，只能信任"启动器正常退出"
-    rt.phase = 'running';
-    projectLog.write('[info] 启动器已退出且无端口可探测，判定为启动成功');
-    return finish({ ok: true, message: '已启动（启动器已退出）', pid: spawned.pid });
+  // 旧机制：主服务就绪后尽力拉起附加命令，不校验结果
+  runAfterReady(project);
+
+  // 伴随服务：带端口就绪校验；required 的没起来则本次启动判失败
+  const ensured = await ensureCompanions(project, companions, projectLog);
+  rt.phase = 'running';
+  if (!ensured.ok) {
+    rt.lastError = ensured.message;
+    return {
+      ok: false,
+      message: `主服务已启动（${readyHow}），但${ensured.message}`,
+      pid: spawned.pid,
+    };
   }
 
-  rt.phase = 'failed';
-  rt.lastError = rt.launcherExited
-    ? '启动器已退出，但服务端口未就绪'
-    : `启动超时（${timeoutMs}ms）且端口未就绪`;
-  projectLog.write(`[error] ${rt.lastError}`);
-  return { ok: false, message: rt.lastError };
+  rt.lastError = null;
+  return {
+    ok: true,
+    message: companionSummary(`已启动（${readyHow}）`, ensured),
+    pid: spawned.pid,
+  };
+}
+
+/**
+ * 轮询等待 PID 真正退出；返回超时后仍存活的 PID。
+ *
+ * taskkill 返回成功不等于句柄立刻释放：进程可能还要几十毫秒到几秒
+ * 才从内核里消失，这段时间它仍然锁着 exe。
+ *
+ * @param {number[]} pids
+ * @param {number} [timeoutMs]
+ * @returns {Promise<number[]>}
+ */
+async function waitForPidsGone(pids, timeoutMs = 2000) {
+  const deadline = Date.now() + timeoutMs;
+  let alive = pids.filter((p) => isPidAlive(p));
+  while (alive.length > 0 && Date.now() < deadline) {
+    await sleep(200);
+    alive = alive.filter((p) => isPidAlive(p));
+  }
+  return alive;
 }
 
 /**
@@ -246,10 +461,8 @@ export async function stopProject(project) {
     let targets = [];
 
     if (strategy === 'port') {
-      const ports = [
-        ...(project.stop?.ports ?? []),
-        ...(project.stop?.port ? [project.stop.port] : []),
-      ].filter(Number.isInteger);
+      // 覆盖主服务、子服务、伴随服务与 stop 声明的全部端口
+      const ports = stopPortsOf(project);
       targets = await pidsOnPorts(ports);
 
       // 端口只能定位到真正监听的服务进程；有些项目还有一层包装器/伴随进程
@@ -306,6 +519,19 @@ export async function stopProject(project) {
     if (stillAlive.length > 0) {
       await killPids(stillAlive, true);
       projectLog.write(`[warn] 软杀超时，已强杀 PID: ${stillAlive.join(', ')}`);
+      // 强杀不代表进程真的退出：Session 0 / 受保护进程会拒绝访问，
+      // 进程继续锁着 exe，后续 pip/覆盖更新必然撞 WinError 32。
+      // 必须复核；没死就明确失败，让更新在动手前中止，而不是把包卸坏。
+      const stubborn = await waitForPidsGone(stillAlive, 2000);
+      if (stubborn.length > 0) {
+        rt.phase = 'idle';
+        rt.lastError = `进程仍在运行（PID ${stubborn.join(', ')}）`;
+        return {
+          ok: false,
+          message: `停止失败：进程仍在运行（PID ${stubborn.join(', ')}），可能权限不足（Session 0 或受保护进程）。为避免更新/覆盖损坏文件，已中止。`,
+          killedPids: targets,
+        };
+      }
     }
 
     rt.phase = 'idle';
@@ -332,7 +558,9 @@ export async function restartProject(project) {
   const stopped = await stopProject(project);
   if (!stopped.ok) return stopped;
 
-  const ports = portsOf(project);
+  // 等待停止集合里的全部端口释放：伴随服务（如 vikingbot 的 18790）
+  // 没释放就重启，会让新拉起的伴随服务撞端口。
+  const ports = stopPortsOf(project);
   if (ports.length > 0) {
     for (const port of ports) {
       let released = false;
