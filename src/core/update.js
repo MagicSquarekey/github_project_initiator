@@ -102,6 +102,14 @@ function versionsEqual(a, b) {
   return norm(a) === norm(b);
 }
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** pip/覆盖安装遇到文件被占用时的典型报错（WinError 32 / EBUSY）。 */
+function isFileLockError(r) {
+  const text = `${r.stdout ?? ''}\n${r.stderr ?? ''}\n${r.error ?? ''}`;
+  return /WinError 32|另一个程序正在使用此文件|being used by another process|EBUSY|resource busy/i.test(text);
+}
+
 /**
  * command 策略：执行项目自己的升级命令（如 pip install -U）。
  *
@@ -119,12 +127,22 @@ async function updateByCommand(project) {
       const r = await stopProject(project);
       if (!r.ok) return { ok: false, message: `更新前停止失败：${r.message}` };
       stopped = true;
+      // 进程刚退出时文件句柄可能还没释放，pip/覆盖安装会撞 WinError 32
+      await sleep(800);
     }
 
-    const r = await exec(cfg.command, Array.isArray(cfg.args) ? cfg.args : [], {
-      cwd: project.path,
-      timeoutMs,
-    });
+    const runUpdateCommand = () =>
+      exec(cfg.command, Array.isArray(cfg.args) ? cfg.args : [], {
+        cwd: project.path,
+        timeoutMs,
+      });
+    let r = await runUpdateCommand();
+    // 句柄释放滞后是瞬态的：等 3 秒重试一次，别让一次 WinError 32 把包卸坏
+    if (!r.ok && isFileLockError(r)) {
+      logger.warn('更新命令遇到文件占用，3 秒后重试一次', { id: project.id });
+      await sleep(3000);
+      r = await runUpdateCommand();
+    }
     const output = `${r.stdout}\n${r.stderr}`.trim();
 
     if (!r.ok) {

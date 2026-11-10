@@ -212,13 +212,30 @@ async function detectUncached(project) {
       cwd: dir,
       timeoutMs: Number.isInteger(cmd.timeoutMs) ? cmd.timeoutMs : 10000,
     });
-    if (r.ok) {
-      const line = r.stdout
-        .trim()
-        .split(/\r?\n/)
-        .map((x) => x.trim())
-        .find(Boolean);
-      if (line) return line;
+    if (r.ok && r.stdout.trim()) {
+      const out = r.stdout.trim();
+
+      // match：从多行/JSON 输出里提取版本（如 wb2api-panel 的 /panel/api/overview）。
+      // 提供了 match 但没匹配到时不再退回首行——首行会是整段 JSON，只会误导。
+      if (typeof cmd.match === 'string' && cmd.match) {
+        let re = null;
+        try {
+          re = new RegExp(cmd.match);
+        } catch {
+          re = null; // 非法正则按未配置处理（registry 校验也会拦）
+        }
+        if (re) {
+          const m = out.match(re);
+          const v = m ? (m[1] ?? m[0]).trim() : '';
+          if (v) return v;
+        } else {
+          const line = out.split(/\r?\n/).map((x) => x.trim()).find(Boolean);
+          if (line) return line;
+        }
+      } else {
+        const line = out.split(/\r?\n/).map((x) => x.trim()).find(Boolean);
+        if (line) return line;
+      }
     }
   }
 

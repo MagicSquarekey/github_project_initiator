@@ -2,13 +2,16 @@
  * GitHub Release 更新所需的纯函数：下载、校验、解压后的覆盖/回滚。
  *
  * 这一层不碰进程启停，也不读 registry；由 core/update.js 编排。
- * 所有网络请求都走 Node 20+ 自带的 fetch，不引第三方依赖。
+ * 网络请求优先走 Node 自带 fetch，直连被阻断时自动重试并兜底走系统代理
+ * （curl.exe，系统自带，不引第三方依赖）。
  */
 
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { extractZip } from './zip.js';
+import { exec } from '../util/exec.js';
+import { logger } from '../util/logger.js';
 
 /**
  * 把简单的 glob 转成正则：* 不跨目录，** 跨目录，? 单字符。
@@ -71,6 +74,134 @@ export function isPreserved(rel, patterns) {
 }
 
 /**
+ * GitHub 访问的通道回退策略。
+ *
+ * 直连 api.github.com 在部分网络下间歇性被阻断，而 Node fetch 不读 Windows
+ * 系统代理，一次失败就整个更新报废。所以按下面顺序依次尝试：
+ *   1. 直连（Node fetch）——最快，且不依赖代理工具是否开着；
+ *   2. 直连重试——吸收偶发的连接重置；
+ *   3. 系统代理（curl.exe 显式 --proxy）——HKCU Internet Settings 里
+ *      ProxyEnable=1 的那个（通常是 Clash 类工具）。
+ * HTTP 状态码错误（403/404 等）换通道结果一样，不重试直接抛。
+ */
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const WIN_INET_KEY = 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings';
+
+/** 读 Windows 系统代理，返回 http://host:port；未开启或非 Windows 返回 null。 */
+async function systemProxy() {
+  if (process.platform !== 'win32') return null;
+  const enable = await exec('reg.exe', ['query', WIN_INET_KEY, '/v', 'ProxyEnable'], { timeoutMs: 5000 });
+  if (!enable.ok || !/0x1\b/i.test(enable.stdout)) return null;
+  const server = await exec('reg.exe', ['query', WIN_INET_KEY, '/v', 'ProxyServer'], { timeoutMs: 5000 });
+  if (!server.ok) return null;
+  const m = server.stdout.match(/ProxyServer\s+REG_SZ\s+(\S+)/);
+  if (!m) return null;
+  let value = m[1].trim();
+  // "http=...;https=..." 按协议分开写时优先取 https
+  if (value.includes('=')) {
+    const perProto = Object.fromEntries(
+      value
+        .split(';')
+        .map((pair) => pair.split('=', 2))
+        .filter((pair) => pair.length === 2),
+    );
+    value = perProto.https || perProto.http || '';
+  }
+  if (!value) return null;
+  return /^https?:\/\//i.test(value) ? value : `http://${value}`;
+}
+
+/**
+ * 直连一次（Node fetch）。
+ *
+ * 网络层失败抛普通 Error（外层继续尝试）；HTTP 状态码错误挂上 httpStatus
+ * 直接抛出。
+ */
+async function directOnce(url, { headers, timeoutMs, parseJson, destFile }) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { headers, redirect: 'follow', signal: controller.signal });
+    if (!res.ok) {
+      const hint = parseJson && res.status === 403 ? '（可能触发 GitHub 限流，可设置 GITHUB_TOKEN）' : '';
+      const err = new Error(`HTTP ${res.status}${hint}`);
+      err.httpStatus = res.status;
+      throw err;
+    }
+    if (destFile) {
+      const buf = Buffer.from(await res.arrayBuffer());
+      fs.mkdirSync(path.dirname(destFile), { recursive: true });
+      fs.writeFileSync(destFile, buf);
+      return buf.length;
+    }
+    return await res.json();
+  } catch (err) {
+    if (err.httpStatus) throw err;
+    if (err.name === 'AbortError') throw new Error(`连接超时（${timeoutMs}ms）`);
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** 用 curl.exe 走一次（可带 --proxy），直连被阻断时的兜底通道。 */
+async function curlOnce(url, { headers = {}, timeoutMs, proxy, destFile }) {
+  const args = ['-sS', '--fail', '-L', '--connect-timeout', '15', '--max-time', String(Math.ceil(timeoutMs / 1000))];
+  if (proxy) args.push('--proxy', proxy);
+  for (const [name, value] of Object.entries(headers)) args.push('-H', `${name}: ${value}`);
+  if (destFile) args.push('-o', destFile);
+  args.push(url);
+
+  const r = await exec('curl.exe', args, { timeoutMs: timeoutMs + 10000 });
+  if (!r.ok) {
+    const detail =
+      (r.stderr || r.stdout || '')
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .pop() || (r.error || `curl 退出码 ${r.code ?? '?'}`);
+    const err = new Error(detail);
+    const status = detail.match(/returned error: (\d{3})/);
+    if (status) err.httpStatus = Number(status[1]);
+    throw err;
+  }
+  if (destFile) return fs.statSync(destFile).size;
+  return r.stdout;
+}
+
+/**
+ * 带通道回退的 GitHub 请求：直连两次后走系统代理，全部失败才抛。
+ *
+ * @param {string} url
+ * @param {{ timeoutMs: number, headers?: Record<string, string>, parseJson?: boolean, destFile?: string, label?: string }} opts
+ * @returns {Promise<any>} parseJson 时为解析后的 JSON；destFile 时为字节数；否则为响应文本
+ */
+async function githubRequest(url, { timeoutMs, headers = {}, parseJson = false, destFile = null, label = '网络请求' }) {
+  const proxy = await systemProxy();
+  const attempts = [{ kind: 'direct' }, { kind: 'direct', delayMs: 2000 }];
+  if (proxy) attempts.push({ kind: 'curl', proxy });
+
+  let lastErr = null;
+  for (const attempt of attempts) {
+    if (attempt.delayMs) await sleep(attempt.delayMs);
+    try {
+      if (attempt.kind === 'direct') {
+        return await directOnce(url, { headers, timeoutMs, parseJson, destFile });
+      }
+      const out = await curlOnce(url, { headers, timeoutMs, proxy: attempt.proxy, destFile });
+      return parseJson ? JSON.parse(out) : out;
+    } catch (err) {
+      lastErr = err;
+      if (err.httpStatus) throw err;
+      logger.warn(`${label}，${attempt.kind} 通道不可达，尝试下一通道`, { url, error: err.message });
+    }
+  }
+  throw new Error(`${label}：${lastErr?.message ?? '未知错误'}（直连与系统代理均不可达）`);
+}
+
+/**
  * 取 GitHub 最新 release。
  *
  * @param {string} repo owner/name
@@ -84,21 +215,12 @@ export async function fetchLatestRelease(repo, timeoutMs = 30000) {
   };
   if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const res = await fetch(`https://api.github.com/repos/${repo}/releases/latest`, {
-      headers,
-      signal: controller.signal,
-    });
-    if (!res.ok) {
-      const hint = res.status === 403 ? '（可能触发 GitHub 限流，可设置 GITHUB_TOKEN）' : '';
-      throw new Error(`查询最新 Release 失败：HTTP ${res.status}${hint}`);
-    }
-    return await res.json();
-  } finally {
-    clearTimeout(timer);
-  }
+  return githubRequest(`https://api.github.com/repos/${repo}/releases/latest`, {
+    timeoutMs,
+    headers,
+    parseJson: true,
+    label: '查询最新 Release',
+  });
 }
 
 /**
@@ -110,22 +232,12 @@ export async function fetchLatestRelease(repo, timeoutMs = 30000) {
  * @returns {Promise<number>} 字节数
  */
 export async function downloadFile(url, dest, timeoutMs = 300000) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const res = await fetch(url, {
-      redirect: 'follow',
-      headers: { 'User-Agent': 'github_project_initiator' },
-      signal: controller.signal,
-    });
-    if (!res.ok) throw new Error(`下载失败：HTTP ${res.status} ${url}`);
-    const buf = Buffer.from(await res.arrayBuffer());
-    fs.mkdirSync(path.dirname(dest), { recursive: true });
-    fs.writeFileSync(dest, buf);
-    return buf.length;
-  } finally {
-    clearTimeout(timer);
-  }
+  return githubRequest(url, {
+    timeoutMs,
+    headers: { 'User-Agent': 'github_project_initiator' },
+    destFile: dest,
+    label: '下载',
+  });
 }
 
 /**

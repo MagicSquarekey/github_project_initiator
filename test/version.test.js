@@ -96,6 +96,39 @@ test('versionCommand 动态查询（OpenViking 形式）', async (t) => {
   );
 });
 
+test('versionCommand.match 从 JSON 输出里提取版本（wb2api-panel 形式）', async (t) => {
+  const dir = tmpDir(t);
+  assert.equal(
+    await detect(dir, {
+      versionCommand: {
+        command: process.execPath,
+        // 模拟 /panel/api/overview 的单行 JSON
+        args: ['-e', 'console.log(JSON.stringify({ total: 24, version: "2026.10.23.1859" }))'],
+        match: String.raw`"version"\s*:\s*"([^"]+)"`,
+        timeoutMs: 10000,
+      },
+    }),
+    '2026.10.23.1859',
+  );
+});
+
+test('versionCommand.match 未命中时不退回首行，继续找下一个来源', async (t) => {
+  const dir = tmpDir(t);
+  // 输出里没有 version 字段：不能把整段 JSON 当版本号，应落到清单文件
+  fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ version: '1.2.3' }));
+  assert.equal(
+    await detect(dir, {
+      versionCommand: {
+        command: process.execPath,
+        args: ['-e', 'console.log(JSON.stringify({ total: 24 }))'],
+        match: String.raw`"version"\s*:\s*"([^"]+)"`,
+        timeoutMs: 10000,
+      },
+    }),
+    '1.2.3',
+  );
+});
+
 test('无清单时用 git describe（2048/Grimoire 形式）', async (t) => {
   const dir = tmpDir(t);
   execFileSync('git', ['init'], { cwd: dir, stdio: 'ignore' });
