@@ -12,18 +12,20 @@ import { createServer } from './server.js';
 import { loadRegistry, MANAGER_PORT } from './core/registry.js';
 import { describeAll } from './api/projects.js';
 import { fetch } from './core/git.js';
+import { parseListenHosts } from './core/listen.js';
 import { logger } from './util/logger.js';
 import os from 'node:os';
 
 /**
  * 监听地址：默认只开本机回环。
  *
- * 跨机访问（Tailscale / 内网）用 GPI_HOST 覆盖，例如：
- *   GPI_HOST=100.65.61.59 node src/index.js   # 只绑定 Tailscale 地址
- *   GPI_HOST=0.0.0.0 node src/index.js        # 所有网卡（务必配防火墙）
+ * 跨机访问（Tailscale / 内网）用 GPI_HOST 覆盖，支持逗号分隔多个地址：
+ *   GPI_HOST=100.65.61.59 node src/index.js              # 只绑定 Tailscale 地址
+ *   GPI_HOST=127.0.0.1,100.65.61.59 node src/index.js    # 回环 + Tailscale 各起一个监听
+ *   GPI_HOST=0.0.0.0 node src/index.js                   # 所有网卡（务必配防火墙）
  * 管理器没有鉴权，非回环监听只应出现在可信内网/Tailscale 里。
  */
-const HOST = process.env.GPI_HOST || '127.0.0.1';
+const LISTEN_HOSTS = parseListenHosts(process.env.GPI_HOST);
 
 /**
  * 监听端口可用 GPI_PORT 覆盖。默认 8780。
@@ -91,22 +93,16 @@ async function main() {
     });
   }
 
-  const server = createServer();
+  // 每个监听地址一个 server：Node 的一个 server 只能 listen 一个 host
+  const servers = [];
+  let bannerPrinted = false;
 
-  server.on('error', (err) => {
-    if (err.code === 'EADDRINUSE') {
-      logger.error(`端口 ${PORT} 已被占用，管理器无法启动`, { port: PORT });
-      process.exit(1);
-    }
-    logger.error('HTTP 服务错误', { error: err.message });
-    process.exit(1);
-  });
-
-  server.listen(PORT, HOST, () => {
-    logger.info(`管理器已启动：http://${HOST}:${PORT}`, { port: PORT, host: HOST });
+  const printBanner = () => {
+    if (bannerPrinted) return;
+    bannerPrinted = true;
     console.log('');
     console.log(`  项目管理器 管理面板`);
-    if (HOST === '0.0.0.0') {
+    if (LISTEN_HOSTS.includes('0.0.0.0')) {
       // 绑所有网卡时列出可访问地址（Tailscale / 内网），方便直接点开
       for (const list of Object.values(os.networkInterfaces())) {
         for (const iface of list ?? []) {
@@ -116,22 +112,47 @@ async function main() {
         }
       }
     } else {
-      console.log(`  http://${HOST}:${PORT}`);
+      for (const host of LISTEN_HOSTS) console.log(`  http://${host}:${PORT}`);
     }
     console.log('');
     console.log('  按 Ctrl+C 停止管理器（不影响已启动的项目）');
     console.log('');
-    if (!isLoopback(HOST)) {
-      logger.warn('管理器监听在非回环地址且没有鉴权，请只在可信内网/Tailscale 暴露', { host: HOST });
+    if (LISTEN_HOSTS.some((h) => !isLoopback(h))) {
+      logger.warn('管理器监听在非回环地址且没有鉴权，请只在可信内网/Tailscale 暴露', { hosts: LISTEN_HOSTS });
       console.log('  ⚠ 无鉴权：只应暴露在可信内网/Tailscale，不要开到公网');
       console.log('');
     }
-  });
+  };
+
+  for (const host of LISTEN_HOSTS) {
+    const server = createServer();
+
+    server.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        logger.error(`端口 ${PORT} 已被占用，管理器无法启动`, { port: PORT, host });
+      } else {
+        logger.error('HTTP 服务错误', { error: err.message, host });
+      }
+      process.exit(1);
+    });
+
+    server.listen(PORT, host, () => {
+      logger.info(`管理器已启动：http://${host}:${PORT}`, { port: PORT, host });
+      printBanner();
+    });
+
+    servers.push(server);
+  }
 
   // 优雅退出：管理器退出不该带走被管的 detached 子进程
   const shutdown = () => {
     logger.info('收到退出信号，管理器关闭');
-    server.close(() => process.exit(0));
+    let pending = servers.length;
+    const done = () => {
+      pending -= 1;
+      if (pending <= 0) process.exit(0);
+    };
+    for (const server of servers) server.close(done);
     // 强退兜底：3 秒内没关干净就退
     setTimeout(() => process.exit(0), 3000).unref();
   };
